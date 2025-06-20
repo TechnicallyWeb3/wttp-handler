@@ -1,0 +1,53 @@
+{
+  "name": "@wttp/handler",
+  "version": "0.0.1",
+  "description": "WTTP handler for fetching data from WTTP sites",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/**/*.test.ts",
+    "build": "npm run clean && npm run build:types && npm run build:cjs && npm run build:esm",
+    "build:types": "tsc --project tsconfig.build.json --declaration --emitDeclarationOnly --outDir dist/types",
+    "build:cjs": "tsc --project tsconfig.build.json --module commonjs --outDir dist/cjs",
+    "build:esm": "tsc --project tsconfig.build.json --module esnext --outDir dist/esm",
+    "clean": "shx rm -rf dist",
+    "prepublishOnly": "npm run test && npm run build",
+    "publish:all": "ts-node publish-packages.ts",
+    "publish:dry": "ts-node publish-packages.ts --dry-run",
+    "publish:beta": "ts-node publish-packages.ts --tag=beta"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TechnicallyWeb3/wttp-handler.git"
+  },
+  "keywords": [
+    "wttp",
+    "tw3",
+    "blockchain",
+    "web-hosting",
+    "handler"
+  ],
+  "author": "TechnicallyWeb3",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/TechnicallyWeb3/wttp-handler/issues"
+  },
+  "homepage": "https://github.com/TechnicallyWeb3/wttp-handler#readme",
+  "devDependencies": {
+    "@tw3/esp": "^0.5.5",
+    "@types/chai": "^5.2.2",
+    "@types/mocha": "^10.0.10",
+    "@wttp/gateway": "^0.0.7",
+    "@wttp/site": "^0.1.2",
+    "chai": "^5.2.0",
+    "hardhat": "^2.24.3",
+    "mocha": "^11.6.0",
+    "shx": "^0.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@wttp/core": "^0.4.9",
+    "ethers": "^6.14.4",
+    "mime-types": "^3.0.1"
+  }
+}
