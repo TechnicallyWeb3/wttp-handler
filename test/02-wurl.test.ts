@@ -12,7 +12,8 @@ describe('wURL Implementation', () => {
           protocol: 'wttp:',
           hostname: 'example.com',
           pathname: '/path',
-          port: ''
+          port: '',
+          alias: ''
         }
       },
       {
@@ -22,7 +23,8 @@ describe('wURL Implementation', () => {
           protocol: 'wttp:',
           hostname: 'example.com',
           pathname: '/path',
-          port: '11155111',
+          port: '',
+          alias: '11155111',
         }
       },
       {
@@ -88,6 +90,7 @@ describe('wURL Implementation', () => {
           password: '123',
           hostname: 'example.com',
           port: '1',
+          alias: '1',
           pathname: '/path'
         }
       },
@@ -99,6 +102,7 @@ describe('wURL Implementation', () => {
           password: '11155111',
           hostname: 'example.com',
           port: '42161',
+          alias: '42161',
           pathname: '/path'
         }
       },
@@ -109,7 +113,8 @@ describe('wURL Implementation', () => {
           username: '0xabcdef',
           password: '123',
           hostname: '0x012345',
-          port: '11155111',
+          port: '',
+          alias: '11155111',
           pathname: '/path.html'
         }
       },
@@ -120,7 +125,8 @@ describe('wURL Implementation', () => {
           username: '',
           password: '',
           hostname: 'example.com',
-          port: '11155111',
+          port: '',
+          alias: '11155111',
           pathname: '/'
         }
       },
@@ -131,7 +137,8 @@ describe('wURL Implementation', () => {
           username: 'user%20name',
           password: 'pass%20word',
           hostname: 'example.com',
-          port: '11155111',
+          port: '',
+          alias: '11155111',
           pathname: '/path%20name'
         }
       }
@@ -156,7 +163,8 @@ describe('wURL Implementation', () => {
         input: 'wttp://example.com:11155111/path?key=value&chain=1#fragment',
         expected: {
           hostname: 'example.com',
-          port: '11155111',
+          port: '',
+          alias: '11155111',
           pathname: '/path',
           search: '?key=value&chain=1',
           hash: '#fragment'
@@ -168,6 +176,7 @@ describe('wURL Implementation', () => {
         expected: {
           hostname: 'example.com',
           port: '1',
+          alias: '1',
           pathname: '/api',
           search: '?data=%7B%22key%22%3A%22value%22%7D&type=json'
         }
@@ -178,6 +187,7 @@ describe('wURL Implementation', () => {
         expected: {
           hostname: 'example.com',
           port: '137',
+          alias: '137',
           pathname: '/page',
           hash: '#section1#section2'
         }
@@ -200,22 +210,25 @@ describe('wURL Implementation', () => {
     const relativePathTests = [
       {
         name: 'relative paths with chain inheritance',
-        base: 'wttp://example.com:11155111/base',
+        base: 'wttp://example.com:11155111/base/',
         relative: './relative',
         expected: {
-          href: 'wttp://example.com:65535/base/relative',
-          port: '11155111',
+          url: 'wttp://example.com:11155111/base/relative',
+          href: 'wttp://example.com/base/relative',
+          port: '',
+          alias: '11155111',
           pathname: '/base/relative'
         }
       },
       {
         name: 'absolute paths with chain override',
-        base: 'wttp://example.com:11155111/base',
-        relative: 'wttp://other.com:1/path',
+        base: 'wttp://example.com:11155111/base/',
+        relative: ':1/path',
         expected: {
-          hostname: 'other.com',
-          port: '1',
-          pathname: '/path'
+          hostname: 'example.com',
+          port: '',
+          alias: '11155111',
+          pathname: '/base/:1/path'
         }
       },
       {
@@ -223,10 +236,12 @@ describe('wURL Implementation', () => {
         base: 'wttp://user:pass@example.com:11155111/base?q=1#hash',
         relative: '../other?q=2#new',
         expected: {
+          url: 'wttp://user:pass@example.com:11155111/other?q=2#new',
           username: 'user',
           password: 'pass',
           hostname: 'example.com',
-          port: '11155111',
+          port: '',
+          alias: '11155111',
           pathname: '/other',
           search: '?q=2',
           hash: '#new'
@@ -239,6 +254,7 @@ describe('wURL Implementation', () => {
         expected: {
           hostname: 'example.com',
           port: '1',
+          alias: '1',
           pathname: '/path',
           search: '?newquery=value'
         }
@@ -250,7 +266,9 @@ describe('wURL Implementation', () => {
         const baseUrl = new wURL(base);
         const url = new wURL(relative, baseUrl);
         
+        if (expected.url) expect(url.toString()).to.equal(expected.url);
         if (expected.href) expect(url.href).to.equal(expected.href);
+        if (expected.alias) expect(url.alias).to.equal(expected.alias);
         if (expected.hostname) expect(url.hostname).to.equal(expected.hostname);
         if (expected.port) expect(url.port).to.equal(expected.port);
         if (expected.pathname) expect(url.pathname).to.equal(expected.pathname);
@@ -278,7 +296,8 @@ describe('wURL Implementation', () => {
         input: () => new wURL('wttp://example.com:11155111/path'),
         expected: {
           hostname: 'example.com',
-          port: '11155111',
+          port: '',
+          alias: '11155111',
           pathname: '/path'
         }
       }
@@ -296,19 +315,15 @@ describe('wURL Implementation', () => {
     it('should maintain toString() and href consistency', () => {
       const urlString = 'wttp://user:pass@example.com:11155111/path?q=1#hash';
       const url = new wURL(urlString);
-      expect(urlString).to.equal(url.href);
-      expect(url.toString()).to.equal(url.href);
-      expect(url.port).to.equal('11155111');
+      expect(url.href).not.to.include('11155111');
+      expect(url.toString()).to.equal(urlString);
+      expect(url.port).to.equal('');
+      expect(url.alias).to.equal('11155111');
     });
   });
 
   describe('Error Cases', () => {
     const errorTests = [
-      {
-        name: 'non-numeric chain values',
-        input: 'wttp://example.com:invalidchain',
-        expectedError: 'Invalid URL'
-      },
       {
         name: 'empty URLs',
         input: '',
@@ -334,7 +349,8 @@ describe('wURL Implementation', () => {
         name: 'very large chain IDs (greater than max port)',
         input: 'wttp://example.com:999999999/path',
         expected: {
-          port: '999999999'
+          port: '',
+          alias: '999999999'
         }
       },
       {
@@ -342,13 +358,15 @@ describe('wURL Implementation', () => {
         input: 'wttp://example.com:0/path',
         expected: {
           port: '0',
+          alias: '0'
         }
       },
       {
         name: 'common testnet chain IDs (Sepolia)',
         input: 'wttp://example.com:11155111/path',
         expected: {
-          port: '11155111'
+          port: '',
+          alias: '11155111'
         }
       },
       {
@@ -356,6 +374,7 @@ describe('wURL Implementation', () => {
         input: 'wttp://example.com:42161/path',
         expected: {
           port: '42161',
+          alias: '42161'
         }
       }
     ];
@@ -375,7 +394,8 @@ describe('wURL Implementation', () => {
         initial: 'wttp://example.com:1/path',
         action: (url: wURL) => { url.port = '137'; },
         expected: {
-          port: '137'
+          port: '137',
+          alias: '1'
         }
       },
       {
@@ -383,15 +403,17 @@ describe('wURL Implementation', () => {
         initial: 'wttp://example.com/path',
         action: (url: wURL) => { url.port = '11155111'; },
         expected: {
-          port: '11155111'
+          port: '',
+          alias: ''
         }
       },
       {
         name: 'setting port to string value',
         initial: 'wttp://example.com/path',
-        action: (url: wURL) => { url.port = 'mainnet'; },
+        action: (url: wURL) => { url.alias = 'mainnet'; },
         expected: {
-          port: 'mainnet'
+          port: '',
+          alias: 'mainnet'
         }
       },
       {
@@ -399,7 +421,8 @@ describe('wURL Implementation', () => {
         initial: 'wttp://example.com:8080/path',
         action: (url: wURL) => { url.port = ''; },
         expected: {
-          port: ''
+          port: '',
+          alias: '8080'
         }
       },
       {
@@ -407,7 +430,8 @@ describe('wURL Implementation', () => {
         initial: 'wttp://example.com:65535/path',
         action: (url: wURL) => { /* no action */ },
         expected: {
-          port: '65535'
+          port: '65535',
+          alias: '65535'
         }
       },
       {
@@ -415,7 +439,8 @@ describe('wURL Implementation', () => {
         initial: 'wttp://example.com:11155111/path',
         action: (url: wURL) => { /* no action */ },
         expected: {
-          port: '11155111'
+          port: '',
+          alias: '11155111'
         }
       }
     ];
@@ -426,6 +451,7 @@ describe('wURL Implementation', () => {
         action(url);
         
         expect(url.port).to.equal(expected.port);
+        expect(url.alias).to.equal(expected.alias);
       });
     });
 
@@ -435,14 +461,17 @@ describe('wURL Implementation', () => {
       // Set through port property
       url.port = '1337';
       expect(url.port).to.equal('1337');
+      expect(url.alias).to.equal('');
       
-      // Set large value through port
-      url.port = '999999999';
-      expect(url.port).to.equal('999999999');
+      // Set large value through port will fail
+      url.alias = '999999999';
+      expect(url.port).to.equal('1337');
+      expect(url.alias).to.equal('999999999');
       
       // Set string value through port
-      url.port = 'testnet';
-      expect(url.port).to.equal('testnet');
+      url.alias = 'testnet';
+      expect(url.port).to.equal('1337');
+      expect(url.alias).to.equal('testnet');
     });
 
     it('should handle edge cases in port property', () => {
@@ -452,17 +481,17 @@ describe('wURL Implementation', () => {
       url.port = '0';
       expect(url.port).to.equal('0');
       
-      // Test negative (converted to string)
+      // Test negative (converted to string) fails
       url.port = '-1';
-      expect(url.port).to.equal('-1');
+      expect(url.port).to.equal('0'); 
       
-      // Test decimal
-      url.port = '80.5';
-      expect(url.port).to.equal('80.5');
+      // Test decimal fails
+      url.port = '80.5'; // 80.5 is converted to 80
+      expect(url.port).to.equal('80');
       
       // Test whitespace
-      url.port = ' 80 ';
-      expect(url.port).to.equal(' 80 ');
+      url.port = ' 90 ';
+      expect(url.port).to.equal('80');
     });
 
     it('should update href and host when port is set (cascading effect)', () => {
@@ -485,26 +514,29 @@ describe('wURL Implementation', () => {
       expect(url.href).to.include('8080'); // Should include the port
       
       // Set large port (should still work)
-      url.port = '11155111';
-      console.log('After setting port to 11155111:');
+      url.alias = '11155111';
+      console.log('After setting alias to 11155111:');
       console.log('- href:', url.href);
       console.log('- host:', url.host);
       console.log('- port:', url.port);
       
-      expect(url.port).to.equal('11155111');
-      expect(url.host).to.include('11155111'); // Should include the large port
-      expect(url.href).to.include('11155111'); // Should include the large port
+      expect(url.port).to.equal('8080');
+      expect(url.host).to.include('8080'); // Should include the large port
+      expect(url.toString()).to.include('11155111'); // Should include the large port
+      expect(url.href).to.include('8080'); // Should include the large port
+
       
       // Set string port (should still work)
-      url.port = 'mainnet';
+      url.alias = 'mainnet';
       console.log('After setting port to mainnet:');
       console.log('- href:', url.href);
       console.log('- host:', url.host);
       console.log('- port:', url.port);
       
-      expect(url.port).to.equal('mainnet');
-      expect(url.host).to.include('mainnet'); // Should include the string port
-      expect(url.href).to.include('mainnet'); // Should include the string port
+      expect(url.port).to.equal('8080');
+      expect(url.host).to.include('8080'); // Should include the string port
+      expect(url.toString()).to.include('mainnet'); // Should include the string port
+      expect(url.href).to.include('8080'); // Should include the string port
     });
   });
 });

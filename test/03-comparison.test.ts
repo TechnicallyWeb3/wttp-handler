@@ -14,7 +14,7 @@ describe('Comparing URLs and wURLs', () => {
         const wurl = new wURL(simpleUrl);
         expect(url.href).to.equal(wurl.href);
         expect(url.port).to.equal(wurl.port);
-        expect(wurl.chain).to.be.undefined;
+        expect(wurl.alias).to.equal("");
         expect(url.hostname).to.equal(wurl.hostname);
         expect(url.href).to.equal(wurl.href);
     });
@@ -24,15 +24,15 @@ describe('Comparing URLs and wURLs', () => {
         const wurl = new wURL(chainUrl);
         expect(url.href).to.equal(wurl.href);
         expect(url.port).to.equal(wurl.port);
-        expect(wurl.chain).to.equal(url.port);
+        expect(wurl.alias).to.equal(url.port);
     });
 
     it("should compare URLs and wURLs with a high chain", () => {
         expect(() => new URL(highChainUrl)).to.throw("Invalid URL");
         const wurl = new wURL(highChainUrl);
-        expect(wurl.href).to.equal(highChainUrl);
-        expect(wurl.port).to.equal("65535");
-        expect(wurl.chain).to.equal("11155111");
+        expect(wurl.toString()).to.equal(highChainUrl);
+        expect(wurl.port).to.equal("");
+        expect(wurl.alias).to.equal("11155111");
     });
 
     it("should compare URLs and wURLs with a relative path", () => {
@@ -45,7 +45,7 @@ describe('Comparing URLs and wURLs', () => {
         const wurl = new wURL(complexUrl);
         expect(url.href).to.equal(wurl.href);
         expect(url.port).to.equal(wurl.port);
-        expect(wurl.chain).to.equal(url.port);
+        expect(wurl.alias).to.equal(url.port);
         expect(url.username).to.equal(wurl.username);
         expect(url.password).to.equal(wurl.password);
         expect(url.pathname).to.equal(wurl.pathname);

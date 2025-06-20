@@ -13,7 +13,7 @@ describe('wURL Chain ID Handling', () => {
         expect(url.hostname).to.equal("0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5b");
         expect(url.port).to.equal("");
         expect(url.pathname).to.equal("/index.html");
-        expect(url.chain).to.be.undefined;
+        expect(url.alias).to.equal("");
     });
 
     it("should handle small numeric chain ID", () => {
@@ -22,16 +22,16 @@ describe('wURL Chain ID Handling', () => {
         expect(url.hostname).to.equal("0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5b");
         expect(url.port).to.equal("137");
         expect(url.pathname).to.equal("/index.html");
-        expect(url.chain).to.equal("137");
+        expect(url.alias).to.equal("137");
     });
 
     it("should handle large chain ID like Sepolia (11155111)", () => {
         const url = new wURL(chainUrl);
         expect(url.protocol).to.equal("wttp:");
         expect(url.hostname).to.equal("0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5b");
-        expect(url.port).to.equal("65535"); // URL port limit
+        expect(url.port).to.equal(""); // URL port limit
         expect(url.pathname).to.equal("/index.html");
-        expect(url.chain).to.equal("11155111"); // Original chain preserved
+        expect(url.alias).to.equal("11155111"); // Original chain preserved
     });
 
     it("should handle string chain names like testnet", () => {
@@ -39,30 +39,32 @@ describe('wURL Chain ID Handling', () => {
         expect(url.protocol).to.equal("wttp:");
         expect(url.hostname).to.equal("0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5b");
         expect(url.port).to.equal(""); // String chains don't use port
-        expect(url.pathname).to.equal("/testnet/index.html"); // String becomes part of path
-        expect(url.chain).to.equal("testnet");
+        expect(url.pathname).to.equal("/index.html");
+        expect(url.alias).to.equal("testnet");
     });
 
     it("should allow setting chain programmatically", () => {
         const url = new wURL(simpleUrl);
         
         // Set to large chain ID
-        url.chain = "11155111";
-        expect(url.port).to.equal("65535");
-        expect(url.chain).to.equal("11155111");
-        expect(url.href).to.include(":65535");
+        url.alias = "11155111";
+        expect(url.port).to.equal("");
+        expect(url.alias).to.equal("11155111");
+        expect(url.toString()).to.include(":11155111");
         
         // Set to small chain ID
-        url.chain = "137";
+        url.port = "137";
+        url.alias = "137";
         expect(url.port).to.equal("137");
-        expect(url.chain).to.equal("137");
+        expect(url.alias).to.equal("137");
         expect(url.href).to.include(":137");
         
         // Set to string chain
-        url.chain = "mainnet";
-        expect(url.port).to.equal("");
-        expect(url.chain).to.equal("mainnet");
-        expect(url.href).to.not.include(":");
+        url.alias = "mainnet";
+        expect(url.port).to.equal("137");
+        expect(url.alias).to.equal("mainnet");
+        expect(url.href).to.include(":137");
+        expect(url.toString()).to.include(":mainnet");
     });
 
     it("should preserve URL operations", () => {
@@ -78,8 +80,8 @@ describe('wURL Chain ID Handling', () => {
         expect(url.pathname).to.equal("/path.html");
         expect(url.search).to.equal("?param=value");
         expect(url.hash).to.equal("#fragment");
-        expect(url.chain).to.equal("11155111"); // Chain should be preserved
-        expect(url.port).to.equal("65535"); // Port should still be limited
+        expect(url.alias).to.equal("11155111"); // Chain should be preserved
+        expect(url.port).to.equal(""); // Port should still be limited
     });
 
     it("should handle userinfo with chain", () => {
@@ -89,7 +91,7 @@ describe('wURL Chain ID Handling', () => {
         expect(url.username).to.equal("user");
         expect(url.password).to.equal("pass");
         expect(url.hostname).to.equal("0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5b");
-        expect(url.port).to.equal("65535");
-        expect(url.chain).to.equal("11155111");
+        expect(url.port).to.equal("");
+        expect(url.alias).to.equal("11155111");
     });
 }); 
