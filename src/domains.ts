@@ -49,23 +49,11 @@ export async function resolveEnsName(name: string): Promise<string> {
  * @param hostname - The hostname to resolve (can be URL, wURL, or hostname string)
  * @returns Promise resolving to the Ethereum address
  */
-export async function getHostAddress(hostname: string | URL | wURL): Promise<string> {
-    let host: string;
-    
-    if (typeof hostname === 'string') {
-        // If it's a URL string, parse it, otherwise treat as hostname
-        if (hostname.includes('://')) {
-            const url = new URL(hostname);
-            host = url.hostname;
-        } else {
-            host = hostname;
-        }
+export async function getHostAddress(hostname: string): Promise<string> {
+
+    if (hostname.endsWith('.eth')) {
+        return await resolveEnsName(hostname);
     } else {
-        host = hostname.hostname;
+        return formatEthereumAddress(hostname);
     }
-    
-    if (host.endsWith('.eth')) {
-        return await resolveEnsName(host);
-    }
-    return formatEthereumAddress(host);
 }

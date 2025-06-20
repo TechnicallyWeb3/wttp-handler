@@ -229,6 +229,26 @@ describe('Native URL Relative Path Behavior Analysis', () => {
             href: 'wttp://example.com/absolute.html',
             pathname: '/absolute.html',
         }
+      },
+      {
+        name: 'path with query',
+        base: 'wttp://example.com/base/path/',
+        relative: '?query=value',
+        description: 'Should not include query in pathname',
+        expected: {
+            href: 'wttp://example.com/base/path/?query=value',
+            pathname: '/base/path',
+        }
+      },
+      {
+        name: 'path with fragment',
+        base: 'wttp://example.com/base/path/',
+        relative: '#fragment',
+        description: 'Should not include fragment in pathname',
+        expected: {
+            href: 'wttp://example.com/base/path/#fragment',
+            pathname: '/base/path/',
+        }
       }
     ];
 

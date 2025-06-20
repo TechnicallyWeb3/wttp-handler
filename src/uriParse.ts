@@ -51,21 +51,3 @@
 //     parse(url: string): WttpURI;
 // }
 
-// export function getChainId(alias: string): number | null {
-//     const aliases: Record<string, number> = {    
-//         // String aliases
-//         "localhost": 31337,
-//         "sepolia": 11155111,
-//         "testnet": 11155111,
-//         "ethereum": 1,
-//         "mainnet": 1,
-//         "eth": 1,
-//         "base": 8453,
-//         "polygon": 137,
-//         "matic": 137,
-//         "arbitrum": 42161,
-//         "arb": 42161,
-//     };
-    
-//     return aliases[alias] || parseInt(alias) || null;
-// }
