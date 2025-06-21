@@ -15,8 +15,7 @@
   },
   "exclude": [
     "test",
-    "artifacts",
-    "cache",
+    
     "**/*.test.ts",
     "**/*.spec.ts"
   ]

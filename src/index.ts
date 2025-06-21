@@ -22,6 +22,7 @@
  */
 
 // Export everything from the main modules
-export * from "./wurl";
-export * from "./domains";
-export * from "./methods";
+export * from "./wurl.js";
+export * from "./domains.js";
+export * from "./methods.js";
+export * from "./handler.js";

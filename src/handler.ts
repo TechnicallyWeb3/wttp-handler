@@ -74,7 +74,7 @@ export function getChainId(alias: string): number | null {
     return aliases[alias] || parseInt(alias) || null;
 }
 
-export class WTTP {
+export class WTTPHandler {
     private signer: ethers.Signer | undefined;
     private defaultChain: number;
     private visited: string[] = [];
@@ -285,7 +285,10 @@ export class WTTP {
             throw new Error(`Unsupported method: ${options?.method}`);
         }
 
-        if (response.status >= 300 && response.status < 310 && options.redirect === "follow") {
+        if (
+            this.isRedirect(response.status) &&
+            options.redirect === "follow"
+        ) {
             this.visited.push(wurl.toString());
             const absolutePath = this.getAbsolutePath(response.headers.Location, wurl);
             if (this.visited.includes(absolutePath)) {
@@ -310,7 +313,15 @@ export class WTTP {
             });
         }
 
+        if (this.isRedirect(response.status) && options.redirect === "error") {
+            throw new Error(`Redirect error: ${response.status} Redirect to ${response.headers.Location}`);
+        }
+
         return response;
+    }
+
+    public isRedirect(status: number): boolean {
+        return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
     }
 
     public getAbsolutePath(url: string, base: string | URL | wURL): string {

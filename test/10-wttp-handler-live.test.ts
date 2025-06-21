@@ -1,15 +1,15 @@
 import { expect } from "chai";
-import { WTTP, WTTPFetchOptions } from "../src/handler";
+import { WTTPHandler, WTTPFetchOptions } from "../src/handler";
 import { Method } from "@wttp/core";
 
 describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
     this.timeout(30000); // Increase timeout for network calls
 
-    let wttp: WTTP;
+    let wttp: WTTPHandler;
     const liveTestSite = "wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb:11155111";
 
     beforeEach(() => {
-        wttp = new WTTP();
+        wttp = new WTTPHandler();
     });
 
     describe("Live Site Content Fetching", function() {
@@ -330,7 +330,7 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             ];
 
             for (const test of chainTests) {
-                const wttp = new WTTP(undefined, test.alias);
+                const wttp = new WTTPHandler(undefined, test.alias);
                 expect((wttp as any).defaultChain).to.equal(test.expected);
                 console.log(`✅ Chain alias '${test.alias}' maps to ${test.expected}`);
             }
@@ -341,7 +341,7 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             
             for (const chain of invalidChains) {
                 try {
-                    const wttp = new WTTP(undefined, chain);
+                    const wttp = new WTTPHandler(undefined, chain);
                     console.log(`Chain '${chain}' defaulted to:`, (wttp as any).defaultChain);
                 } catch (error) {
                     console.log(`🚨 Invalid chain '${chain}' error:`, (error as Error).message);

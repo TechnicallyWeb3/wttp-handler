@@ -92,17 +92,17 @@ function main(): void {
   
   try {
     // Publish public package (uses current package.json)
-    publishPackage('wttp-site', 'package.json', options);
+    publishPackage('wttp-handler', 'package.json', options);
     
     // Publish organization scoped package (temporarily swaps package.json)
-    publishPackage('@wttp/site', 'package.wttp.json', options);
+    publishPackage('@wttp/handler', 'package.wttp.json', options);
     
     console.log('\n🎉 All packages published successfully!');
     
     if (!dryRun) {
       console.log('\n📋 Installation commands:');
-      console.log('npm install wttp-site');
-      console.log('npm install @wttp/site');
+      console.log('npm install wttp-handler');
+      console.log('npm install @wttp/handler');
     }
     
   } catch (error) {
