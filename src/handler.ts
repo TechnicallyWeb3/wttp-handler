@@ -1,28 +1,34 @@
 import { 
     RangeStruct, 
-    IBaseWTTPSite__factory, 
-    type IBaseWTTPSite, 
     IWTTPGateway__factory, 
     type IWTTPGateway,
     config,
     Method,
-    HEADRequestStruct,
-    LOCATERequestStruct,
-    GETRequestStruct,
     GETResponseStruct,
     HEADResponseStruct,
-    LOCATEResponseStruct,
     LOCATEResponseSecureStruct,
     OPTIONSResponseStruct,
     bitmaskToMethods,
     decodeMimeType,
+    decodeCharset,
     decodeEncoding,
     decodeLanguage,
-    decodeCharset
+    DataPointSizesStruct,
 } from "@wttp/core";
 import { wURL } from "./wurl";
 import { ethers } from "ethers";
 import { getHostAddress } from "./domains";
+import { 
+    wttpOPTIONS,
+    wttpHEAD,
+    wttpLOCATE,
+    wttpGET,
+    HEADOptions,
+    LOCATEOptions,
+    GETOptions,
+ } from "./methods";
+
+const MAX_REDIRECTS = 30;
 
 export interface WTTPFetchOptions {
     method?: Method;
@@ -34,14 +40,14 @@ export interface WTTPFetchOptions {
     },
     signer?: ethers.Signer;
     gateway?: string;
+    redirect?: "follow" | "error" | "manual";
 }
 
-export interface WTTPResponse {
-    head?: HEADResponseStruct;
-    locate?: LOCATEResponseSecureStruct;
-    get?: GETResponseStruct;
-    options?: OPTIONSResponseStruct;
-}
+export type WTTPResponse = 
+    HEADResponseStruct | 
+    LOCATEResponseSecureStruct | 
+    GETResponseStruct | 
+    OPTIONSResponseStruct;
 
 export interface SimpleResponse {
     status: number;
@@ -68,20 +74,22 @@ export function getChainId(alias: string): number | null {
     return aliases[alias] || parseInt(alias) || null;
 }
 
-class WTTP {
+export class WTTP {
     private signer: ethers.Signer | undefined;
     private defaultChain: number;
+    private visited: string[] = [];
 
     constructor(signer?: ethers.Signer, defaultChain?: string) {
         this.signer = signer;
         this.defaultChain = getChainId(defaultChain || "") || config.defaultChain;
     }
 
-    public getSite(site: string, chainId?: number, signer?: ethers.Signer): IBaseWTTPSite {
-        chainId = chainId || this.defaultChain;
-        signer = this.connectProvider(chainId, signer);
-        return IBaseWTTPSite__factory.connect(site, signer);
-    }
+    // not actually needed for read only operations
+    // public getSite(site: string, chainId?: number, signer?: ethers.Signer): IBaseWTTPSite {
+    //     chainId = chainId || this.defaultChain;
+    //     signer = this.connectProvider(chainId, signer);
+    //     return IBaseWTTPSite__factory.connect(site, signer);
+    // }
 
     public getGateway(chainId?: number, signer?: ethers.Signer, gateway?: string): IWTTPGateway {
         chainId = chainId || this.defaultChain;
@@ -97,89 +105,269 @@ class WTTP {
         return signer.connect(new ethers.JsonRpcProvider(rpc));
     }
 
-    public getRequestStructs(wurl: wURL, headers: WTTPFetchOptions["headers"]): { headRequest: HEADRequestStruct, locateRequest: LOCATERequestStruct, getRequest: GETRequestStruct } {
-        const headRequest: HEADRequestStruct = {
-            path: wurl.pathname,
-            ifModifiedSince: BigInt(headers?.ifModifiedSince || 0),
-            ifNoneMatch: headers?.ifNoneMatch || ethers.ZeroHash
+    public formatResponse(response: WTTPResponse, method: Method): SimpleResponse {
+        let status: number;
+        let head: HEADResponseStruct | undefined;
+        let headers: Record<string, string>;
+        let structure: DataPointSizesStruct | undefined;
+        let body: string | Uint8Array | undefined;
+
+        if (method === Method.OPTIONS) {
+            status = Number((response as OPTIONSResponseStruct).status);
+            headers = {
+                "Allowed-Methods": bitmaskToMethods(Number((response as OPTIONSResponseStruct).allow)).join(", "),
+            };
+            body = "";
+            return {
+                status,
+                headers,
+                body,
+            }
+        } else if (method === Method.HEAD) {
+            head = response as HEADResponseStruct;
+            body = "";
+        } else if (method === Method.LOCATE) {
+            const locateResponse = response as LOCATEResponseSecureStruct;
+            head = locateResponse.locate.head;
+            structure = locateResponse.structure;
+            body = JSON.stringify(structure, (key, value) => 
+                typeof value === 'bigint' ? value.toString() : value
+            );
+        } else if (method === Method.GET) {
+            const getResponse = response as GETResponseStruct;
+            head = getResponse.head;
+            structure = getResponse.body.sizes;
+            body = head.metadata.properties.charset == "0x7556" || head.metadata.properties.charset == "0x7508" ? ethers.toUtf8String(getResponse.body.data) : ethers.getBytes(getResponse.body.data);
         }
 
-        const locateRequest: LOCATERequestStruct = {
-            head: headRequest,
-            rangeChunks: headers?.rangeChunks || { start: 0, end: 0 },
-        }
-
-        const getRequest: GETRequestStruct = {
-            locate: locateRequest,
-            rangeBytes: headers?.rangeBytes || { start: 0, end: 0 },
+        if (head) {
+            status = Number(head.headerInfo.redirect.code || head.status);
+            headers = {
+                "Content-Length": method === Method.HEAD ? head.metadata.size.toString() : structure?.totalSize.toString() || "0",
+                "Content-Type": `${decodeMimeType(head.metadata.properties.mimeType as any)}; charset=${decodeCharset(head.metadata.properties.charset as any)}` || "",
+                "Content-Encoding": decodeEncoding(head.metadata.properties.encoding as any) || "",
+                "Content-Language": decodeLanguage(head.metadata.properties.language as any) || "",
+                "Content-Version": head.metadata.version.toString(),
+                "Last-Modified": head.metadata.lastModified.toString(),
+                "ETag": head.etag.toString(),
+                "Cache-Control": head.headerInfo.cache.preset.toString(),
+                "Immutable-Flag": head.headerInfo.cache.immutableFlag.toString(),
+                "Cache-Custom": head.headerInfo.cache.custom.toString(),
+                "CORS-Preset": head.headerInfo.cors.preset.toString(),
+                "CORS-Custom": head.headerInfo.cors.custom.toString(),
+                "Allow-Origin": head.headerInfo.cors.origins.toString(),
+                "Allow-Methods": bitmaskToMethods(Number(head.headerInfo.cors.methods)).join(", "),
+                "Location": head.headerInfo.redirect.location.toString(),
+                // "Content-Range": we need the request struct to get the response range
+            }
+        } else {
+            throw new Error("Head not found in response");
         }
         
         return {
-            headRequest,
-            locateRequest,
-            getRequest
+            status,
+            headers,
+            body: body || "",
         }
     }
 
-    public async fetch(url: string | URL | wURL, options?: WTTPFetchOptions) {
+    public async fetch(url: string | URL | wURL, options?: WTTPFetchOptions): Promise<SimpleResponse> {
         const wurl = new wURL(url);
+        const chainId = getChainId(wurl.alias) || this.defaultChain;
+        const gateway = this.getGateway(chainId, options?.signer, options?.gateway);
+        const siteAddress = await getHostAddress(wurl.hostname);
 
-        const headers = options?.headers || {};
-        const method = options?.method || Method.GET;
+        let response: SimpleResponse | undefined;
 
-        if (wurl.protocol.startsWith("wttp")) {
-            const chainId = getChainId(wurl.alias) || this.defaultChain;
-            const gateway = this.getGateway(chainId, options?.signer, options?.gateway);
-            const siteAddress = await getHostAddress(wurl.hostname);
+        options = options || {};
+        if (options.method === undefined) {
+            options.method = Method.GET;
+        }
+        if (options.redirect === undefined) {
+            options.redirect = "follow";
+        }
 
-            let response: SimpleResponse;
-
-            const { headRequest, locateRequest, getRequest } = this.getRequestStructs(wurl, headers);
-
-            switch (method) {
-                case Method.OPTIONS:
-                    const optionsResponse = await gateway.OPTIONS(siteAddress, wurl.pathname) as OPTIONSResponseStruct;
+        if (options.method === Method.OPTIONS) {
+            try {
+                const optionsResponse = await wttpOPTIONS(gateway, siteAddress, wurl.pathname);
+                response = this.formatResponse(optionsResponse, Method.OPTIONS);
+            } catch (error) {
+                if (error instanceof Error && error.message.includes(" _")) {
                     response = {
-                        status: Number(optionsResponse.status),
-                        headers: {
-                            "Allowed-Methods": bitmaskToMethods(Number(optionsResponse.allow)).join(", "),
-                        },
-                        body: ""
+                        status: Number(error.message.split(" _")[1].slice(0, 2)),
+                        headers: {},
+                        body: "",
                     };
-                    break;
-                case Method.HEAD:
-                    const headResponse = await gateway.HEAD(siteAddress, headRequest) as HEADResponseStruct;
-                    response = {
-                        status: Number(headResponse.status),
-                        headers: {
-                            "Content-Length": headResponse.metadata.size.toString(),
-                            "Content-Type": `${decodeMimeType(headResponse.metadata.properties.mimeType as any)}; charset=${decodeCharset(headResponse.metadata.properties.charset as any)}` || "",
-                            "Content-Encoding": decodeEncoding(headResponse.metadata.properties.encoding as any) || "",
-                            "Content-Language": decodeLanguage(headResponse.metadata.properties.language as any) || "",
-                            "ETag": headResponse.etag.toString(),
-                            "Last-Modified": headResponse.metadata.lastModified.toString(),
-                        },
-                        body: ""
-                    };
-                    break;
-                case Method.LOCATE:
-                    response = {
-                        locate: await gateway.LOCATE(siteAddress, locateRequest) as LOCATEResponseSecureStruct
-                    };
-                case Method.GET:
-                    response = {
-                        get: await gateway.GET(siteAddress, getRequest) as GETResponseStruct
-                    };
-                default:
-                    throw new Error(`Unsupported method: ${method}`);
+                } else {
+                    throw error;
+                }
             }
+        } else if (options.method === Method.HEAD) {
+            try {
+                const headResponse = await wttpHEAD(gateway, siteAddress, wurl.pathname, options?.headers as HEADOptions);
+                response = this.formatResponse(headResponse, Method.HEAD);
+            } catch (error) {
+                if (error instanceof Error && error.message.includes(" _")) {
+                    return {
+                        status: Number(error.message.split(" _")[1].slice(0, 2)),
+                        headers: {},
+                        body: "",
+                    };
+                } else {
+                    throw error;
+                }
+            }
+        } else if (options.method === Method.LOCATE) {
+            try {
+                const locateResponse = await wttpLOCATE(gateway, siteAddress, wurl.pathname, options?.headers as LOCATEOptions);
+                response = this.formatResponse(locateResponse, Method.LOCATE);
+            } catch (error) {
+                if (error instanceof Error && error.message.includes(" _")) {
+                    return {
+                        status: Number(error.message.split(" _")[1].slice(0, 2)),
+                        headers: {},
+                        body: "",
+                    };
+                } else {
+                    throw error;
+                }
+            }
+        } else if (options.method === Method.GET) {
+            try {
+                const getResponse = await wttpGET(gateway, siteAddress, wurl.pathname, options?.headers as GETOptions);
+                response = this.formatResponse(getResponse, Method.GET);
+            } catch (error) {
+                if (error instanceof Error && error.message.includes(" _")) {
+                    return {
+                        status: Number(error.message.split(" _")[1].slice(0, 2)),
+                        headers: {},
+                        body: "",
+                    };
+                } else {
+                    throw error;
+                }
+            }
+        }
 
-            return response;
+        if (!response) {
+            throw new Error(`Unsupported method: ${options?.method}`);
+        }
 
-        } else {
-            return await fetch(url, {
-                method: method.toString()
+        if (response.status >= 300 && response.status < 310 && options.redirect === "follow") {
+            this.visited.push(wurl.toString());
+            const absolutePath = this.getAbsolutePath(response.headers.Location, wurl);
+            if (this.visited.includes(absolutePath)) {
+                return {
+                    status: 508,
+                    headers: {},
+                    body: "LOOP_DETECTED: " + this.visited.join(", "),
+                };
+            }
+            if (this.visited.length > MAX_REDIRECTS) {
+                return {
+                    status: 310,
+                    headers: {},
+                    body: "TOO_MANY_REDIRECTS: " + this.visited.join(", "),
+                };
+            }
+            return await this.fetch(this.getAbsolutePath(response.headers.Location, wurl), {
+                method: options.method,
+                headers: options?.headers,
+                signer: options?.signer,
+                gateway: gateway.target.toString(),
             });
         }
+
+        return response;
     }
+
+    public getAbsolutePath(url: string, base: string | URL | wURL): string {
+        return new wURL(url, base).toString();
+    }
+
+    // public getRequestStructs(wurl: wURL, headers: WTTPFetchOptions["headers"]): { headRequest: HEADRequestStruct, locateRequest: LOCATERequestStruct, getRequest: GETRequestStruct } {
+    //     const headRequest: HEADRequestStruct = {
+    //         path: wurl.pathname,
+    //         ifModifiedSince: BigInt(headers?.ifModifiedSince || 0),
+    //         ifNoneMatch: headers?.ifNoneMatch || ethers.ZeroHash
+    //     }
+
+    //     const locateRequest: LOCATERequestStruct = {
+    //         head: headRequest,
+    //         rangeChunks: headers?.rangeChunks || { start: 0, end: 0 },
+    //     }
+
+    //     const getRequest: GETRequestStruct = {
+    //         locate: locateRequest,
+    //         rangeBytes: headers?.rangeBytes || { start: 0, end: 0 },
+    //     }
+        
+    //     return {
+    //         headRequest,
+    //         locateRequest,
+    //         getRequest
+    //     }
+    // }
+
+    // public async fetch(url: string | URL | wURL, options?: WTTPFetchOptions) {
+    //     const wurl = new wURL(url);
+
+    //     const headers = options?.headers || {};
+    //     const method = options?.method || Method.GET;
+
+    //     if (wurl.protocol.startsWith("wttp")) {
+    //         const chainId = getChainId(wurl.alias) || this.defaultChain;
+    //         const gateway = this.getGateway(chainId, options?.signer, options?.gateway);
+    //         const siteAddress = await getHostAddress(wurl.hostname);
+
+    //         let response: SimpleResponse;
+
+    //         const { headRequest, locateRequest, getRequest } = this.getRequestStructs(wurl, headers);
+
+    //         switch (method) {
+    //             case Method.OPTIONS:
+    //                 const optionsResponse = await gateway.OPTIONS(siteAddress, wurl.pathname) as OPTIONSResponseStruct;
+    //                 response = {
+    //                     status: Number(optionsResponse.status),
+    //                     headers: {
+    //                         "Allowed-Methods": bitmaskToMethods(Number(optionsResponse.allow)).join(", "),
+    //                     },
+    //                     body: ""
+    //                 };
+    //                 break;
+    //             case Method.HEAD:
+    //                 const headResponse = await gateway.HEAD(siteAddress, headRequest) as HEADResponseStruct;
+    //                 response = {
+    //                     status: Number(headResponse.status),
+    //                     headers: {
+    //                         "Content-Length": headResponse.metadata.size.toString(),
+    //                         "Content-Type": `${decodeMimeType(headResponse.metadata.properties.mimeType as any)}; charset=${decodeCharset(headResponse.metadata.properties.charset as any)}` || "",
+    //                         "Content-Encoding": decodeEncoding(headResponse.metadata.properties.encoding as any) || "",
+    //                         "Content-Language": decodeLanguage(headResponse.metadata.properties.language as any) || "",
+    //                         "ETag": headResponse.etag.toString(),
+    //                         "Last-Modified": headResponse.metadata.lastModified.toString(),
+    //                     },
+    //                     body: ""
+    //                 };
+    //                 break;
+    //             case Method.LOCATE:
+    //                 response = {
+    //                     locate: await gateway.LOCATE(siteAddress, locateRequest) as LOCATEResponseSecureStruct
+    //                 };
+    //             case Method.GET:
+    //                 response = {
+    //                     get: await gateway.GET(siteAddress, getRequest) as GETResponseStruct
+    //                 };
+    //             default:
+    //                 throw new Error(`Unsupported method: ${method}`);
+    //         }
+
+    //         return response;
+
+    //     } else {
+    //         return await fetch(url, {
+    //             method: method.toString()
+    //         });
+    //     }
+    // }
 }

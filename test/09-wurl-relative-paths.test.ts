@@ -288,5 +288,19 @@ describe('wURL Relative Path Behavior - Comprehensive Tests', () => {
       expect(url.pathname).to.equal('/path');
       expect(url.search).to.equal('?new=value');
     });
+
+    it('should handle basic relative path', () => {
+      const base = 'wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb:11155111/';
+      const relative = './index.html';
+      
+      console.log(`\nTesting: ${relative} with base ${base}`);
+
+      const url = new wURL(relative, base);
+      console.log(`Result: ${url.toString()}`);
+      
+      expect(url.toString()).to.equal('wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb:11155111/index.html');
+      expect(url.pathname).to.equal('/index.html');
+      expect(url.alias).to.equal('11155111');
+    });
   });
 }); 

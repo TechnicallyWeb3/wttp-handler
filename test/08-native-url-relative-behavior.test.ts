@@ -237,7 +237,7 @@ describe('Native URL Relative Path Behavior Analysis', () => {
         description: 'Should not include query in pathname',
         expected: {
             href: 'wttp://example.com/base/path/?query=value',
-            pathname: '/base/path',
+            pathname: '/base/path/',
         }
       },
       {
