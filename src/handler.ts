@@ -192,9 +192,9 @@ export class WTTP {
                 const optionsResponse = await wttpOPTIONS(gateway, siteAddress, wurl.pathname);
                 response = this.formatResponse(optionsResponse, Method.OPTIONS);
             } catch (error) {
-                if (error instanceof Error && error.message.includes(" _")) {
+                if (error instanceof Error && error.message.includes(" _404")) {
                     response = {
-                        status: Number(error.message.split(" _")[1].slice(0, 2)),
+                        status: 404,
                         headers: {},
                         body: "",
                     };
@@ -270,7 +270,7 @@ export class WTTP {
                     body: "TOO_MANY_REDIRECTS: " + this.visited.join(", "),
                 };
             }
-            return await this.fetch(this.getAbsolutePath(response.headers.Location, wurl), {
+            return await this.fetch(new wURL(response.headers.Location, wurl), {
                 method: options.method,
                 headers: options?.headers,
                 signer: options?.signer,
@@ -285,89 +285,4 @@ export class WTTP {
         return new wURL(url, base).toString();
     }
 
-    // public getRequestStructs(wurl: wURL, headers: WTTPFetchOptions["headers"]): { headRequest: HEADRequestStruct, locateRequest: LOCATERequestStruct, getRequest: GETRequestStruct } {
-    //     const headRequest: HEADRequestStruct = {
-    //         path: wurl.pathname,
-    //         ifModifiedSince: BigInt(headers?.ifModifiedSince || 0),
-    //         ifNoneMatch: headers?.ifNoneMatch || ethers.ZeroHash
-    //     }
-
-    //     const locateRequest: LOCATERequestStruct = {
-    //         head: headRequest,
-    //         rangeChunks: headers?.rangeChunks || { start: 0, end: 0 },
-    //     }
-
-    //     const getRequest: GETRequestStruct = {
-    //         locate: locateRequest,
-    //         rangeBytes: headers?.rangeBytes || { start: 0, end: 0 },
-    //     }
-        
-    //     return {
-    //         headRequest,
-    //         locateRequest,
-    //         getRequest
-    //     }
-    // }
-
-    // public async fetch(url: string | URL | wURL, options?: WTTPFetchOptions) {
-    //     const wurl = new wURL(url);
-
-    //     const headers = options?.headers || {};
-    //     const method = options?.method || Method.GET;
-
-    //     if (wurl.protocol.startsWith("wttp")) {
-    //         const chainId = getChainId(wurl.alias) || this.defaultChain;
-    //         const gateway = this.getGateway(chainId, options?.signer, options?.gateway);
-    //         const siteAddress = await getHostAddress(wurl.hostname);
-
-    //         let response: SimpleResponse;
-
-    //         const { headRequest, locateRequest, getRequest } = this.getRequestStructs(wurl, headers);
-
-    //         switch (method) {
-    //             case Method.OPTIONS:
-    //                 const optionsResponse = await gateway.OPTIONS(siteAddress, wurl.pathname) as OPTIONSResponseStruct;
-    //                 response = {
-    //                     status: Number(optionsResponse.status),
-    //                     headers: {
-    //                         "Allowed-Methods": bitmaskToMethods(Number(optionsResponse.allow)).join(", "),
-    //                     },
-    //                     body: ""
-    //                 };
-    //                 break;
-    //             case Method.HEAD:
-    //                 const headResponse = await gateway.HEAD(siteAddress, headRequest) as HEADResponseStruct;
-    //                 response = {
-    //                     status: Number(headResponse.status),
-    //                     headers: {
-    //                         "Content-Length": headResponse.metadata.size.toString(),
-    //                         "Content-Type": `${decodeMimeType(headResponse.metadata.properties.mimeType as any)}; charset=${decodeCharset(headResponse.metadata.properties.charset as any)}` || "",
-    //                         "Content-Encoding": decodeEncoding(headResponse.metadata.properties.encoding as any) || "",
-    //                         "Content-Language": decodeLanguage(headResponse.metadata.properties.language as any) || "",
-    //                         "ETag": headResponse.etag.toString(),
-    //                         "Last-Modified": headResponse.metadata.lastModified.toString(),
-    //                     },
-    //                     body: ""
-    //                 };
-    //                 break;
-    //             case Method.LOCATE:
-    //                 response = {
-    //                     locate: await gateway.LOCATE(siteAddress, locateRequest) as LOCATEResponseSecureStruct
-    //                 };
-    //             case Method.GET:
-    //                 response = {
-    //                     get: await gateway.GET(siteAddress, getRequest) as GETResponseStruct
-    //                 };
-    //             default:
-    //                 throw new Error(`Unsupported method: ${method}`);
-    //         }
-
-    //         return response;
-
-    //     } else {
-    //         return await fetch(url, {
-    //             method: method.toString()
-    //         });
-    //     }
-    // }
 }
