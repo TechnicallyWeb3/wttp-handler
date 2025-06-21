@@ -192,14 +192,22 @@ export class WTTP {
                 const optionsResponse = await wttpOPTIONS(gateway, siteAddress, wurl.pathname);
                 response = this.formatResponse(optionsResponse, Method.OPTIONS);
             } catch (error) {
-                if (error instanceof Error && error.message.includes(" _404")) {
-                    response = {
-                        status: 404,
-                        headers: {},
-                        body: "",
-                    };
-                } else {
-                    throw error;
+                if (error instanceof Error) {
+                    if(chainId == 11155111 && error.message.includes("execution reverted")) {
+                        return {
+                            status: 404,
+                            headers: {},
+                            body: "",
+                        };
+                    } else if (error.message.includes(" _4")) {
+                        return {
+                            status: Number(error.message.split(" _")[1].slice(0, 2)),
+                            headers: {},
+                            body: "",
+                        };
+                    } else {
+                        throw new Error("OPTIONS error: " + error.message); // error;
+                    }
                 }
             }
         } else if (options.method === Method.HEAD) {
@@ -207,14 +215,22 @@ export class WTTP {
                 const headResponse = await wttpHEAD(gateway, siteAddress, wurl.pathname, options?.headers as HEADOptions);
                 response = this.formatResponse(headResponse, Method.HEAD);
             } catch (error) {
-                if (error instanceof Error && error.message.includes(" _")) {
-                    return {
-                        status: Number(error.message.split(" _")[1].slice(0, 2)),
-                        headers: {},
-                        body: "",
-                    };
-                } else {
-                    throw error;
+                if (error instanceof Error) {
+                    if(chainId == 11155111 && error.message.includes("execution reverted")) {
+                        return {
+                            status: 404,
+                            headers: {},
+                            body: "",
+                        };
+                    } else if (error.message.includes(" _4")) {
+                        return {
+                            status: Number(error.message.split(" _")[1].slice(0, 2)),
+                            headers: {},
+                            body: "",
+                        };
+                    } else {
+                        throw new Error("HEAD error: " + error.message); // error;
+                    }
                 }
             }
         } else if (options.method === Method.LOCATE) {
@@ -222,14 +238,22 @@ export class WTTP {
                 const locateResponse = await wttpLOCATE(gateway, siteAddress, wurl.pathname, options?.headers as LOCATEOptions);
                 response = this.formatResponse(locateResponse, Method.LOCATE);
             } catch (error) {
-                if (error instanceof Error && error.message.includes(" _")) {
-                    return {
-                        status: Number(error.message.split(" _")[1].slice(0, 2)),
-                        headers: {},
-                        body: "",
-                    };
-                } else {
-                    throw error;
+                if (error instanceof Error) {
+                    if(chainId == 11155111 && error.message.includes("execution reverted")) {
+                        return {
+                            status: 404,
+                            headers: {},
+                            body: "",
+                        };
+                    } else if (error.message.includes(" _4")) {
+                        return {
+                            status: Number(error.message.split(" _")[1].slice(0, 2)),
+                            headers: {},
+                            body: "",
+                        };
+                    } else {
+                        throw new Error("LOCATE error: " + error.message); // error;
+                    }
                 }
             }
         } else if (options.method === Method.GET) {
@@ -237,14 +261,22 @@ export class WTTP {
                 const getResponse = await wttpGET(gateway, siteAddress, wurl.pathname, options?.headers as GETOptions);
                 response = this.formatResponse(getResponse, Method.GET);
             } catch (error) {
-                if (error instanceof Error && error.message.includes(" _")) {
-                    return {
-                        status: Number(error.message.split(" _")[1].slice(0, 2)),
-                        headers: {},
-                        body: "",
-                    };
-                } else {
-                    throw error;
+                if (error instanceof Error) {
+                    if(chainId == 11155111 && error.message.includes("execution reverted")) {
+                        return {
+                            status: 404,
+                            headers: {},
+                            body: "",
+                        };
+                    } else if (error.message.includes(" _4")) {
+                        return {
+                            status: Number(error.message.split(" _")[1].slice(0, 2)),
+                            headers: {},
+                            body: "",
+                        };
+                    } else {
+                        throw new Error("GET error: " + error.message); // error;
+                    }
                 }
             }
         }
