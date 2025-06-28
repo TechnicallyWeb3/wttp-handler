@@ -4,6 +4,10 @@ import {
     HEADRequestStruct,
     RangeStruct, 
     IWTTPGateway,
+    GETResponseStruct,
+    LOCATEResponseSecureStruct,
+    HEADResponseStruct,
+    OPTIONSResponseStruct,
 } from "@wttp/core";
 import { ethers } from "ethers";
 
@@ -40,7 +44,7 @@ export interface GETOptions extends LOCATEOptions {
 //     }
 // }
 
-export async function wttpGET(gateway: IWTTPGateway, siteAddress: string, path: string, options: GETOptions) {
+export async function wttpGET(gateway: IWTTPGateway, siteAddress: string, path: string, options: GETOptions): Promise<GETResponseStruct> {
     // function processGETResponse(response: GETResponseStruct) {
     //     if ()
     //     return {
@@ -69,7 +73,7 @@ export async function wttpGET(gateway: IWTTPGateway, siteAddress: string, path: 
     }
 }
 
-export async function wttpLOCATE(gateway: IWTTPGateway, siteAddress: string, path: string, options: LOCATEOptions) {
+export async function wttpLOCATE(gateway: IWTTPGateway, siteAddress: string, path: string, options: LOCATEOptions): Promise<LOCATEResponseSecureStruct> {
     const locateRequest: LOCATERequestStruct = {
             head: {
                 path,
@@ -90,7 +94,7 @@ export async function wttpLOCATE(gateway: IWTTPGateway, siteAddress: string, pat
     }
 }
 
-export async function wttpHEAD(gateway: IWTTPGateway, siteAddress: string, path: string, options: HEADOptions) {
+export async function wttpHEAD(gateway: IWTTPGateway, siteAddress: string, path: string, options: HEADOptions): Promise<HEADResponseStruct> {
     const headRequest: HEADRequestStruct = {
         path,
         ifModifiedSince: options?.ifModifiedSince || 0n,
@@ -105,7 +109,7 @@ export async function wttpHEAD(gateway: IWTTPGateway, siteAddress: string, path:
     }
 }
 
-export async function wttpOPTIONS(gateway: IWTTPGateway, siteAddress: string, path: string) {
+export async function wttpOPTIONS(gateway: IWTTPGateway, siteAddress: string, path: string): Promise<OPTIONSResponseStruct> {
     try {
         const response = await gateway.OPTIONS(siteAddress, path);
         return response;

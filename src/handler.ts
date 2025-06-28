@@ -14,10 +14,10 @@ import {
     decodeEncoding,
     decodeLanguage,
     DataPointSizesStruct,
+    wURL,
+    getHostAddress,
 } from "@wttp/core";
-import { wURL } from "./wurl";
 import { ethers } from "ethers";
-import { getHostAddress } from "./domains";
 import { 
     wttpOPTIONS,
     wttpHEAD,
@@ -26,7 +26,7 @@ import {
     HEADOptions,
     LOCATEOptions,
     GETOptions,
- } from "./methods";
+ } from ".";
 
 const MAX_REDIRECTS = 30;
 
@@ -171,11 +171,13 @@ export class WTTPHandler {
         }
     }
 
-    public async fetch(url: string | URL | wURL, options?: WTTPFetchOptions): Promise<SimpleResponse> {
+    public async fetch(url: string | URL | wURL, options?: WTTPFetchOptions): Promise<Response> {
         const wurl = new wURL(url);
         const chainId = getChainId(wurl.alias) || this.defaultChain;
         const gateway = this.getGateway(chainId, options?.signer, options?.gateway);
-        const siteAddress = await getHostAddress(wurl.hostname);
+        const fetchHostname = wurl.hostname.endsWith(".contractaddress0x") ? 
+            wurl.hostname.replace(".contractaddress0x", "") : wurl.hostname;
+        const siteAddress = await getHostAddress(fetchHostname);
 
         let response: SimpleResponse | undefined;
 
@@ -194,17 +196,19 @@ export class WTTPHandler {
             } catch (error) {
                 if (error instanceof Error) {
                     if(chainId == 11155111 && error.message.includes("execution reverted")) {
-                        return {
+                        const simpleResponse: SimpleResponse = {
                             status: 404,
                             headers: {},
                             body: "",
                         };
+                        return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
                     } else if (error.message.includes(" _4")) {
-                        return {
+                        const simpleResponse: SimpleResponse = {
                             status: Number(error.message.split(" _")[1].slice(0, 2)),
                             headers: {},
                             body: "",
                         };
+                        return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
                     } else {
                         throw new Error("OPTIONS error: " + error.message); // error;
                     }
@@ -217,17 +221,19 @@ export class WTTPHandler {
             } catch (error) {
                 if (error instanceof Error) {
                     if(chainId == 11155111 && error.message.includes("execution reverted")) {
-                        return {
+                        const simpleResponse: SimpleResponse = {
                             status: 404,
                             headers: {},
                             body: "",
                         };
+                        return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
                     } else if (error.message.includes(" _4")) {
-                        return {
+                        const simpleResponse: SimpleResponse = {
                             status: Number(error.message.split(" _")[1].slice(0, 2)),
                             headers: {},
                             body: "",
                         };
+                        return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
                     } else {
                         throw new Error("HEAD error: " + error.message); // error;
                     }
@@ -240,17 +246,19 @@ export class WTTPHandler {
             } catch (error) {
                 if (error instanceof Error) {
                     if(chainId == 11155111 && error.message.includes("execution reverted")) {
-                        return {
+                        const simpleResponse: SimpleResponse = {
                             status: 404,
                             headers: {},
                             body: "",
                         };
+                        return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
                     } else if (error.message.includes(" _4")) {
-                        return {
+                        const simpleResponse: SimpleResponse = {
                             status: Number(error.message.split(" _")[1].slice(0, 2)),
                             headers: {},
                             body: "",
                         };
+                        return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
                     } else {
                         throw new Error("LOCATE error: " + error.message); // error;
                     }
@@ -263,17 +271,19 @@ export class WTTPHandler {
             } catch (error) {
                 if (error instanceof Error) {
                     if(chainId == 11155111 && error.message.includes("execution reverted")) {
-                        return {
+                        const simpleResponse: SimpleResponse = {
                             status: 404,
                             headers: {},
                             body: "",
                         };
+                        return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
                     } else if (error.message.includes(" _4")) {
-                        return {
+                        const simpleResponse: SimpleResponse = {
                             status: Number(error.message.split(" _")[1].slice(0, 2)),
                             headers: {},
                             body: "",
                         };
+                        return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
                     } else {
                         throw new Error("GET error: " + error.message); // error;
                     }
@@ -292,18 +302,20 @@ export class WTTPHandler {
             this.visited.push(wurl.toString());
             const absolutePath = this.getAbsolutePath(response.headers.Location, wurl);
             if (this.visited.includes(absolutePath)) {
-                return {
+                const simpleResponse: SimpleResponse = {
                     status: 508,
                     headers: {},
                     body: "LOOP_DETECTED: " + this.visited.join(", "),
                 };
+                return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
             }
             if (this.visited.length > MAX_REDIRECTS) {
-                return {
+                const simpleResponse: SimpleResponse = {
                     status: 310,
                     headers: {},
                     body: "TOO_MANY_REDIRECTS: " + this.visited.join(", "),
                 };
+                return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
             }
             return await this.fetch(new wURL(response.headers.Location, wurl), {
                 method: options.method,
@@ -317,7 +329,22 @@ export class WTTPHandler {
             throw new Error(`Redirect error: ${response.status} Redirect to ${response.headers.Location}`);
         }
 
-        return response;
+        return this.createResponse(response.body, response.status, response.headers);
+    }
+
+    private createResponse(body: string | Uint8Array, status: number, headers: Record<string, string>): Response {
+        // Handle null body status codes according to Fetch spec
+        if (status === 204 || status === 304 || (status >= 100 && status < 200)) {
+            return new Response(null, {
+                status,
+                headers
+            });
+        }
+        
+        return new Response(body, {
+            status,
+            headers
+        });
     }
 
     public isRedirect(status: number): boolean {

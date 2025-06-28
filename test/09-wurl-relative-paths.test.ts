@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { wURL } from '../src/wurl';
+import { wURL } from '@wttp/core';
 
 describe('wURL Relative Path Behavior - Comprehensive Tests', () => {
   describe('Port-like Relative Paths (Critical)', () => {

@@ -16,59 +16,62 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
         
         it("should fetch index.html from live site", async function() {
             const response = await wttp.fetch(`${liveTestSite}/index.html`);
+            const body = await response.text();
             
             console.log("Index.html response:", {
                 status: response.status,
-                headers: Object.keys(response.headers),
-                bodyType: typeof response.body,
-                bodyLength: response.body.toString().length
+                headers: Object.fromEntries(response.headers.entries()),
+                bodyType: typeof body,
+                bodyLength: body.length
             });
             
             expect(response.status).to.equal(200);
-            expect(response.headers).to.have.property("Content-Type");
-            expect(response.body).to.be.a("string");
-            expect(response.body.toString()).to.include("html");
+            expect(response.headers.get("Content-Type")).to.exist;
+            expect(body).to.be.a("string");
+            expect(body).to.include("html");
         });
 
         it("should fetch main.js from live site", async function() {
             const response = await wttp.fetch(`${liveTestSite}/main.js`);
+            const body = await response.text();
             
             console.log("Main.js response:", {
                 status: response.status,
-                contentType: response.headers["Content-Type"],
-                bodyLength: response.body.toString().length
+                contentType: response.headers.get("Content-Type"),
+                bodyLength: body.length
             });
             
             expect(response.status).to.equal(200);
-            expect(response.headers["Content-Type"]).to.include("javascript");
+            expect(response.headers.get("Content-Type")).to.include("javascript");
         });
 
         it("should fetch main.js.LICENSE.txt from live site", async function() {
             const response = await wttp.fetch(`${liveTestSite}/main.js.LICENSE.txt`);
+            const body = await response.text();
             
             console.log("License file response:", {
                 status: response.status,
-                contentType: response.headers["Content-Type"],
-                bodyLength: response.body.toString().length
+                contentType: response.headers.get("Content-Type"),
+                bodyLength: body.length
             });
             
             expect(response.status).to.equal(200);
-            expect(response.body).to.be.a("string");
+            expect(body).to.be.a("string");
         });
 
         it("should fetch example/example.txt and analyze content", async function() {
             const response = await wttp.fetch(`${liveTestSite}/example/example.txt`);
+            const content = await response.text();
             
             console.log("Example.txt response:", {
                 status: response.status,
-                contentType: response.headers["Content-Type"],
-                bodyContent: response.body.toString().substring(0, 200) + "..."
+                contentType: response.headers.get("Content-Type"),
+                bodyContent: content.substring(0, 200) + "..."
             });
             
             expect(response.status).to.equal(200);
-            expect(response.body).to.be.a("string");
+            expect(content).to.be.a("string");
             
-            const content = response.body.toString();
             console.log("📄 Example.txt content analysis:");
             console.log("- Length:", content.length, "characters");
             console.log("- Lines:", content.split('\n').length);
@@ -95,8 +98,8 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
                 
                 console.log("Directory response:", {
                     status: response.status,
-                    headers: response.headers,
-                    bodyType: typeof response.body
+                    headers: Object.fromEntries(response.headers.entries()),
+                    bodyType: typeof await response.text()
                 });
                 
                 // Directory listings might return different status codes
@@ -109,13 +112,14 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
 
         it("should handle root directory request", async function() {
             const response = await wttp.fetch(`${liveTestSite}/`);
+            const body = await response.text();
             
             console.log("Root directory response:", {
                 status: response.status,
-                bodyLength: response.body.toString().length
+                bodyLength: body.length
             });
 
-            console.log(response.body);
+            console.log(body);
             
             expect(response.status).to.equal(200);
         });
@@ -127,16 +131,17 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             const response = await wttp.fetch(`${liveTestSite}/index.html`, { 
                 method: Method.HEAD 
             });
+            const body = await response.text();
             
             console.log("HEAD response:", {
                 status: response.status,
-                headers: response.headers,
-                bodyEmpty: response.body === ""
+                headers: Object.fromEntries(response.headers.entries()),
+                bodyEmpty: body === ""
             });
             
             expect(response.status).to.equal(200);
-            expect(response.body).to.equal("");
-            expect(response.headers).to.have.property("Content-Length");
+            expect(body).to.equal("");
+            expect(response.headers.get("Content-Length")).to.exist;
         });
 
         it("should perform OPTIONS request", async function() {
@@ -146,24 +151,25 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             
             console.log("OPTIONS response:", {
                 status: response.status,
-                allowedMethods: response.headers["Allowed-Methods"],
-                headers: response.headers
+                allowedMethods: response.headers.get("Allowed-Methods"),
+                headers: Object.fromEntries(response.headers.entries())
             });
             
             expect(response.status).to.be.a("number");
-            expect(response.headers).to.have.property("Allowed-Methods");
+            expect(response.headers.get("Allowed-Methods")).to.exist;
         });
 
         it("should perform LOCATE request", async function() {
             const response = await wttp.fetch(`${liveTestSite}/index.html`, { 
                 method: Method.LOCATE 
             });
+            const body = await response.text();
             
             console.log("LOCATE response:", {
                 status: response.status,
-                bodyType: typeof response.body,
-                bodyContent: typeof response.body === 'string' ? 
-                    response.body.substring(0, 200) : 'Binary data'
+                bodyType: typeof body,
+                bodyContent: typeof body === 'string' ? 
+                    body.substring(0, 200) : 'Binary data'
             });
             
             expect(response.status).to.be.a("number");
@@ -242,11 +248,12 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
                         rangeBytes: { start: 0n, end: 100n }
                     }
                 });
+                const body = await response.text();
                 
                 console.log("Range request response:", {
                     status: response.status,
-                    bodyLength: response.body.toString().length,
-                    contentRange: response.headers["Content-Range"]
+                    bodyLength: body.length,
+                    contentRange: response.headers.get("Content-Range")
                 });
                 
             } catch (error) {
@@ -264,7 +271,7 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
                 
                 console.log("Conditional request response:", {
                     status: response.status,
-                    lastModified: response.headers["Last-Modified"]
+                    lastModified: response.headers.get("Last-Modified")
                 });
                 
             } catch (error) {
@@ -276,7 +283,7 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             try {
                 // First get the file to obtain ETag
                 const firstResponse = await wttp.fetch(`${liveTestSite}/index.html`);
-                const etag = firstResponse.headers["ETag"];
+                const etag = firstResponse.headers.get("ETag");
                 
                 if (etag) {
                     // Then request with If-None-Match
@@ -365,8 +372,9 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             
             console.log("Response headers validation:");
             for (const header of requiredHeaders) {
-                const exists = response.headers.hasOwnProperty(header);
-                console.log(`- ${header}: ${exists ? '✅' : '❌'} ${response.headers[header] || 'MISSING'}`);
+                const value = response.headers.get(header);
+                const exists = value !== null;
+                console.log(`- ${header}: ${exists ? '✅' : '❌'} ${value || 'MISSING'}`);
                 
                 if (!exists) {
                     console.log(`🚨 BUG: Missing required header: ${header}`);
@@ -376,7 +384,7 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
 
         it("should validate Content-Type header format", async function() {
             const response = await wttp.fetch(`${liveTestSite}/index.html`);
-            const contentType = response.headers["Content-Type"];
+            const contentType = response.headers.get("Content-Type");
             
             console.log("Content-Type analysis:", contentType);
             
@@ -401,8 +409,8 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             ];
             
             for (const header of numericHeaders) {
-                const value = response.headers[header];
-                if (value !== undefined) {
+                const value = response.headers.get(header);
+                if (value !== null) {
                     const parsed = parseInt(value);
                     console.log(`${header}: ${value} (parsed: ${parsed})`);
                     
@@ -420,16 +428,16 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             // Try to fetch what might be a binary file
             try {
                 const response = await wttp.fetch(`${liveTestSite}/main.js`);
+                const body = await response.text();
                 
                 console.log("Binary data test:", {
-                    bodyType: typeof response.body,
-                    isUint8Array: response.body instanceof Uint8Array,
-                    isString: typeof response.body === 'string',
-                    length: response.body.toString().length
+                    bodyType: typeof body,
+                    isString: typeof body === 'string',
+                    length: body.length
                 });
                 
-                // Body should be either string or Uint8Array
-                expect(['string', 'object']).to.include(typeof response.body);
+                // Body should be string when using text()
+                expect(body).to.be.a('string');
             } catch (error) {
                 console.log("🚨 Binary handling error:", (error as Error).message);
             }
@@ -447,8 +455,9 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             
             try {
                 const responses = await Promise.all(requests);
+                const bodies = await Promise.all(responses.map(r => r.text()));
                 console.log("Simultaneous requests results:", 
-                    responses.map(r => ({ status: r.status, size: r.body.toString().length }))
+                    responses.map((r, i) => ({ status: r.status, size: bodies[i].length }))
                 );
                 
                 responses.forEach(response => {
@@ -464,11 +473,12 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             try {
                 const start = Date.now();
                 const response = await wttp.fetch(`${liveTestSite}/main.js`);
+                const body = await response.text();
                 const elapsed = Date.now() - start;
                 
                 console.log("Large file performance:", {
                     time: elapsed + "ms",
-                    size: response.body.toString().length,
+                    size: body.length,
                     status: response.status
                 });
                 

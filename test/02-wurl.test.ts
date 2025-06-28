@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { wURL } from '../src/wurl';
+import { wURL } from '@wttp/core';
 
 describe('wURL Implementation', () => {
   

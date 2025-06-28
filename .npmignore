@@ -84,9 +84,11 @@ tests/
 *.test.ts
 *.spec.js
 *.spec.ts
+/test-*
 
 # Mocha config files
 .mocharc.json
 
 # AI Agent files
 /agent-files
+/backup

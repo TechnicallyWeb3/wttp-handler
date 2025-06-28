@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { wURL } from '../src/wurl';
+import { wURL } from '@wttp/core';
 
 const simpleUrl = "wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5b/index.html";
 const portUrl = "wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5b:137/index.html";
