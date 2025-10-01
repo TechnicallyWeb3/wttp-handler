@@ -1,6 +1,6 @@
 {
   "name": "wttp-handler",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "WTTP handler for fetching data from WTTP sites",
   "main": "./dist/cjs/src/index.js",
   "module": "./dist/esm/src/index.js",
@@ -58,7 +58,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@wttp/core": "^0.5.0",
+    "@wttp/core": "^0.5.3",
     "ethers": "^6.14.4",
     "mime-types": "^3.0.1"
   }

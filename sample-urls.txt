@@ -1,0 +1,20 @@
+# Sample wURLs for testing
+# Lines starting with # are comments and will be ignored
+
+# Live test sites
+wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb:11155111/index.html
+wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb:11155111/main.js
+wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb:11155111/example/example.txt
+
+# Polygon test site
+wttp://0xc7E99e9fdf714B4A604c7224d7B14d2ef324b952:137/index.html
+wttp://0xc7E99e9fdf714B4A604c7224d7B14d2ef324b952:137/manifest.json
+wttp://0xc7E99e9fdf714B4A604c7224d7B14d2ef324b952:137/global.css
+
+# ENS test site
+wttp://wordl3.eth/index.html
+wttp://wordl3.eth/manifest.json
+
+# Test non-existent files (should return 404)
+wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb:11155111/nonexistent.html
+wttp://0xc7E99e9fdf714B4A604c7224d7B14d2ef324b952:137/missing-file.js

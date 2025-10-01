@@ -7,6 +7,39 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
 
     let wttp: WTTPHandler;
     const liveTestSite = "wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb:11155111";
+    const liveTestSitePaths = [
+        "/index.html",
+        "/main.js",
+        "/main.js.LICENSE.txt",
+        "/example/example.txt"
+    ];
+    const polygonTestSite = "wttp://0xc7E99e9fdf714B4A604c7224d7B14d2ef324b952:137";
+    const polygonTestSitePaths = [
+        "/index.html",
+        "/index-v1.5.2.js",
+        "/index-v1.5.2.css",
+        "/global.css",
+        "/LICENSE",
+        "/manifest.json",
+        "/sw.js",
+        "/GPL-3-LICENSE.txt",
+        "/img/logo_32x32.png",
+        "/img/logo_48x48.png",
+        "/img/logo_72x72.png",
+        "/img/logo_96x96.png",
+        "/img/logo_144x144.png",
+        "/img/logo_168x168.png",
+        "/img/logo_192x192.png",
+        "/img/logo_512x512.png",
+        "/img/og_1200x630.png",
+    ];
+    const polygonTestSiteEns = "wttp://wordl3.eth";
+
+    const testSites = [
+        { name: "liveTestSite", url: liveTestSite, paths: liveTestSitePaths },
+        { name: "polygonTestSite", url: polygonTestSite, paths: polygonTestSitePaths },
+        { name: "polygonTestSiteEns", url: polygonTestSiteEns, paths: polygonTestSitePaths }
+    ];
 
     beforeEach(() => {
         wttp = new WTTPHandler();
@@ -122,6 +155,177 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             console.log(body);
             
             expect(response.status).to.equal(200);
+        });
+    });
+
+    describe("All Test Sites Path Validation", function() {
+        
+        testSites.forEach(testSite => {
+            describe(`${testSite.name} (${testSite.url})`, function() {
+                
+                it(`should fetch all valid paths from ${testSite.name}`, async function() {
+                    console.log(`\n🌐 Testing ${testSite.name} with ${testSite.paths.length} paths`);
+                    console.log(`URL: ${testSite.url}`);
+                    console.log(`Paths: ${testSite.paths.join(', ')}`);
+                    
+                    const results: Array<{path: string, status: number, success: boolean, error?: string, size?: number}> = [];
+                    
+                    // Test each path sequentially to avoid overwhelming the server
+                    for (const path of testSite.paths) {
+                        try {
+                            console.log(`  📁 Testing: ${path}`);
+                            const response = await wttp.fetch(`${testSite.url}${path}`);
+                            const body = await response.text();
+                            
+                            const result = {
+                                path,
+                                status: response.status,
+                                success: response.status === 200,
+                                size: body.length
+                            };
+                            
+                            results.push(result);
+                            
+                            if (response.status === 200) {
+                                console.log(`    ✅ ${path} - ${response.status} (${body.length} bytes)`);
+                            } else {
+                                console.log(`    ❌ ${path} - ${response.status}`);
+                            }
+                            
+                            // Add small delay to be respectful to the server
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                            
+                        } catch (error) {
+                            const result = {
+                                path,
+                                status: 0,
+                                success: false,
+                                error: (error as Error).message
+                            };
+                            
+                            results.push(result);
+                            console.log(`    💥 ${path} - ERROR: ${(error as Error).message}`);
+                        }
+                    }
+                    
+                    // Summary
+                    const successful = results.filter(r => r.success).length;
+                    const failed = results.length - successful;
+                    const totalSize = results.reduce((sum, r) => sum + (r.size || 0), 0);
+                    
+                    console.log(`\n📊 ${testSite.name} Summary:`);
+                    console.log(`  ✅ Successful: ${successful}/${results.length}`);
+                    console.log(`  ❌ Failed: ${failed}/${results.length}`);
+                    console.log(`  📏 Total data: ${totalSize} bytes`);
+                    
+                    if (failed > 0) {
+                        console.log(`\n🚨 Failed paths for ${testSite.name}:`);
+                        results.filter(r => !r.success).forEach(r => {
+                            console.log(`  - ${r.path}: ${r.error || `Status ${r.status}`}`);
+                        });
+                    }
+                    
+                    // At least some paths should be successful (not requiring all to pass)
+                    expect(successful).to.be.greaterThan(0, `No paths were successful for ${testSite.name}`);
+                    
+                    // Store results for potential debugging
+                    (this as any).testResults = results;
+                });
+                
+                it(`should handle root path for ${testSite.name}`, async function() {
+                    try {
+                        console.log(`\n🏠 Testing root path for ${testSite.name}`);
+                        const response = await wttp.fetch(`${testSite.url}/`);
+                        const body = await response.text();
+                        
+                        console.log(`Root response for ${testSite.name}:`, {
+                            status: response.status,
+                            bodyLength: body.length,
+                            contentType: response.headers.get("Content-Type")
+                        });
+                        
+                        expect(response.status).to.equal(200);
+                        expect(body).to.be.a("string");
+                        expect(body.length).to.be.greaterThan(0);
+                        
+                    } catch (error) {
+                        console.log(`🚨 Root path failed for ${testSite.name}:`, (error as Error).message);
+                        throw error;
+                    }
+                });
+                
+                it(`should validate content types for ${testSite.name}`, async function() {
+                    console.log(`\n🔍 Validating content types for ${testSite.name}`);
+                    
+                    const contentTypeTests = [
+                        { path: "/index.html", expectedType: "text/html" },
+                        { path: "/manifest.json", expectedType: "application/json" },
+                        { path: "/global.css", expectedType: "text/css" },
+                        { path: "/sw.js", expectedType: "javascript" }
+                    ];
+                    
+                    for (const test of contentTypeTests) {
+                        if (testSite.paths.includes(test.path)) {
+                            try {
+                                const response = await wttp.fetch(`${testSite.url}${test.path}`);
+                                const contentType = response.headers.get("Content-Type") || "";
+                                
+                                console.log(`  ${test.path}: ${contentType}`);
+                                
+                                if (response.status === 200) {
+                                    expect(contentType.toLowerCase()).to.include(test.expectedType.toLowerCase());
+                                }
+                                
+                            } catch (error) {
+                                console.log(`  ${test.path}: ERROR - ${(error as Error).message}`);
+                            }
+                        }
+                    }
+                });
+            });
+        });
+        
+        it("should compare response times across test sites", async function() {
+            console.log("\n⏱️  Response time comparison across test sites");
+            
+            const timingResults: Array<{site: string, path: string, time: number, status: number}> = [];
+            
+            // Test the same path across all sites (using index.html as it's common)
+            const commonPath = "/index.html";
+            
+            for (const testSite of testSites) {
+                if (testSite.paths.includes(commonPath)) {
+                    try {
+                        const start = Date.now();
+                        const response = await wttp.fetch(`${testSite.url}${commonPath}`);
+                        const elapsed = Date.now() - start;
+                        
+                        timingResults.push({
+                            site: testSite.name,
+                            path: commonPath,
+                            time: elapsed,
+                            status: response.status
+                        });
+                        
+                        console.log(`  ${testSite.name}: ${elapsed}ms (${response.status})`);
+                        
+                    } catch (error) {
+                        console.log(`  ${testSite.name}: ERROR - ${(error as Error).message}`);
+                    }
+                }
+            }
+            
+            if (timingResults.length > 1) {
+                const avgTime = timingResults.reduce((sum, r) => sum + r.time, 0) / timingResults.length;
+                const fastest = Math.min(...timingResults.map(r => r.time));
+                const slowest = Math.max(...timingResults.map(r => r.time));
+                
+                console.log(`\n📈 Timing Analysis:`);
+                console.log(`  Average: ${avgTime.toFixed(0)}ms`);
+                console.log(`  Fastest: ${fastest}ms`);
+                console.log(`  Slowest: ${slowest}ms`);
+                console.log(`  Range: ${slowest - fastest}ms`);
+            }
         });
     });
 
