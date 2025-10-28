@@ -68,7 +68,7 @@ export async function wttpGET(gateway: IWTTPGateway, siteAddress: string, path: 
         const response = await gateway.GET(siteAddress, getRequest);
         return response;
     } catch (error) {
-        console.error(error);
+        // console.error(error);
         throw error;
     }
 }

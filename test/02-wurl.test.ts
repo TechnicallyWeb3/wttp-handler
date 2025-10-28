@@ -497,17 +497,17 @@ describe('wURL Implementation', () => {
     it('should update href and host when port is set (cascading effect)', () => {
       const url = new wURL('wttp://example.com/path');
       
-      console.log('Initial state:');
-      console.log('- href:', url.href);
-      console.log('- host:', url.host);
-      console.log('- port:', url.port);
+      // console.log('Initial state:');
+      // console.log('- href:', url.href);
+      // console.log('- host:', url.host);
+      // console.log('- port:', url.port);
       
       // Set valid port
       url.port = '8080';
-      console.log('After setting port to 8080:');
-      console.log('- href:', url.href);
-      console.log('- host:', url.host);
-      console.log('- port:', url.port);
+      // console.log('After setting port to 8080:');
+      // console.log('- href:', url.href);
+      // console.log('- host:', url.host);
+      // console.log('- port:', url.port);
       
       expect(url.port).to.equal('8080');
       expect(url.host).to.include('8080'); // Should include the port
@@ -515,10 +515,10 @@ describe('wURL Implementation', () => {
       
       // Set large port (should still work)
       url.alias = '11155111';
-      console.log('After setting alias to 11155111:');
-      console.log('- href:', url.href);
-      console.log('- host:', url.host);
-      console.log('- port:', url.port);
+      // console.log('After setting alias to 11155111:');
+      // console.log('- href:', url.href);
+      // console.log('- host:', url.host);
+      // console.log('- port:', url.port);
       
       expect(url.port).to.equal('8080');
       expect(url.host).to.include('8080'); // Should include the large port
@@ -528,10 +528,10 @@ describe('wURL Implementation', () => {
       
       // Set string port (should still work)
       url.alias = 'mainnet';
-      console.log('After setting port to mainnet:');
-      console.log('- href:', url.href);
-      console.log('- host:', url.host);
-      console.log('- port:', url.port);
+      // console.log('After setting port to mainnet:');
+      // console.log('- href:', url.href);
+      // console.log('- host:', url.host);
+      // console.log('- port:', url.port);
       
       expect(url.port).to.equal('8080');
       expect(url.host).to.include('8080'); // Should include the string port

@@ -43,13 +43,13 @@ describe('Native URL Relative Path Behavior Analysis', () => {
 
     baseTests.forEach(({ name, base, relative, description }) => {
       it(`should handle ${name}`, () => {
-        console.log(`\n${description}`);
-        console.log(`Base: ${base}`);
-        console.log(`Relative: ${relative}`);
+        // console.log(`\n${description}`);
+        // console.log(`Base: ${base}`);
+        // console.log(`Relative: ${relative}`);
         
         const url = new URL(relative, base);
-        console.log(`Result: ${url.toString()}`);
-        console.log(`Pathname: ${url.pathname}`);
+        // console.log(`Result: ${url.toString()}`);
+        // console.log(`Pathname: ${url.pathname}`);
         expect(url).to.be.instanceof(URL);
       });
     });
@@ -85,25 +85,26 @@ describe('Native URL Relative Path Behavior Analysis', () => {
 
     portTests.forEach(({ name, base, relative, description }) => {
       it(`should handle ${name}`, () => {
-        console.log(`\n${description}`);
-        console.log(`Base: ${base}`);
-        console.log(`Relative: ${relative}`);
+        // console.log(`\n${description}`);
+        // console.log(`Base: ${base}`);
+        // console.log(`Relative: ${relative}`);
         
         try {
           const url = new URL(relative, base);
-          console.log(`✅ WORKS: ${url.toString()}`);
-          console.log(`   Protocol: ${url.protocol}`);
-          console.log(`   Hostname: ${url.hostname}`);
-          console.log(`   Port: ${url.port}`);
-          console.log(`   Pathname: ${url.pathname}`);
+          // console.log(`✅ WORKS: ${url.toString()}`);
+          // console.log(`   Protocol: ${url.protocol}`);
+          // console.log(`   Hostname: ${url.hostname}`);
+          // console.log(`   Port: ${url.port}`);
+          // console.log(`   Pathname: ${url.pathname}`);
           
           // Check if it's actually relative by comparing hostname
           const baseUrl = new URL(base);
-          if (url.hostname === baseUrl.hostname) {
-            console.log(`   ✅ IS RELATIVE (same hostname)`);
-          } else {
-            console.log(`   ❌ IS ABSOLUTE (different hostname)`);
-          }
+          expect(baseUrl.hostname).to.equal(url.hostname);
+          // if (url.hostname === baseUrl.hostname) {
+          //   console.log(`   ✅ IS RELATIVE (same hostname)`);
+          // } else {
+          //   console.log(`   ❌ IS ABSOLUTE (different hostname)`);
+          // }
           
           expect(url).to.be.instanceof(URL);
         } catch (error: any) {
@@ -135,14 +136,14 @@ describe('Native URL Relative Path Behavior Analysis', () => {
 
     protocolTests.forEach(({ name, base, relative }) => {
       it(`should handle ${name}`, () => {
-        console.log(`\nTesting: ${relative}`);
-        console.log(`Base: ${base}`);
+        // console.log(`\nTesting: ${relative}`);
+        // console.log(`Base: ${base}`);
         
         try {
           const url = new URL(relative, base);
-          console.log(`✅ Result: ${url.toString()}`);
-          console.log(`   Protocol: ${url.protocol}`);
-          console.log(`   Hostname: ${url.hostname}`);
+          // console.log(`✅ Result: ${url.toString()}`);
+          // console.log(`   Protocol: ${url.protocol}`);
+          // console.log(`   Hostname: ${url.hostname}`);
           expect(url).to.be.instanceof(URL);
         } catch (error: any) {
           console.log(`❌ Error: ${error.message}`);
@@ -176,13 +177,13 @@ describe('Native URL Relative Path Behavior Analysis', () => {
 
     backtrackTests.forEach(({ name, base, relative, description }) => {
       it(`should handle ${name}`, () => {
-        console.log(`\n${description}`);
-        console.log(`Base: ${base}`);
-        console.log(`Relative: ${relative}`);
+        // console.log(`\n${description}`);
+        // console.log(`Base: ${base}`);
+        // console.log(`Relative: ${relative}`);
         
         const url = new URL(relative, base);
-        console.log(`✅ Result: ${url.toString()}`);
-        console.log(`   Pathname: ${url.pathname}`);
+        // console.log(`✅ Result: ${url.toString()}`);
+        // console.log(`   Pathname: ${url.pathname}`);
         expect(url).to.be.instanceof(URL);
       });
     });

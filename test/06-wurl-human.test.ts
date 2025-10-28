@@ -69,7 +69,8 @@ describe("wURL Human Tests", () => {
             // this test is skipped because parse-uri doesn't fully support ipv6 urls
             const url = new wURL("https://[::1]:8080");
             const parsedUrl = parseUri(url.href);
-            console.log("Parsed URL:", JSON.stringify(parsedUrl));
+            expect(parsedUrl).to.be.an('object');
+            // console.log("Parsed URL:", JSON.stringify(parsedUrl));
             expect(url.alias).to.equal("8080");
             expect(url.port).to.equal("8080");
             expect(url.href).to.equal("https://[::1]:8080/");
@@ -78,23 +79,25 @@ describe("wURL Human Tests", () => {
 
         it("should handle IPv6 with string alias", () => {
             const originalUrl = "https://[::1]:myalias";
-            console.log("Original URL:", originalUrl);
+            // console.log("Original URL:", originalUrl);
             
             // Test if native URL can handle this
             try {
                 const nativeUrl = new URL(originalUrl);
-                console.log("Native URL worked:", nativeUrl.href);
+                expect(nativeUrl.hostname).to.be.a('string');
+                // console.log("Native URL worked:", nativeUrl.href);
             } catch (error) {
                 console.log(`Native URL failed: ${error}`);
             }
             
             const preprocessed = wURL.preprocessUrl(originalUrl);
-            console.log("Preprocessed:", preprocessed);
+            // console.log("Preprocessed:", preprocessed);
             
             // Test if native URL can handle the preprocessed URL
             try {
                 const nativeUrlPreprocessed = new URL(preprocessed.processedUrl);
-                console.log("Native URL with preprocessed worked:", nativeUrlPreprocessed.href);
+                expect(nativeUrlPreprocessed.hostname).to.be.a('string');
+                // console.log("Native URL with preprocessed worked:", nativeUrlPreprocessed.href);
             } catch (error) {
                 console.log(`Native URL with preprocessed failed: ${error}`);
             }
@@ -108,25 +111,27 @@ describe("wURL Human Tests", () => {
 
         it("should handle IPv6 without port", () => {
             const originalUrl = "https://[2001:db8::1]";
-            console.log("Original URL:", originalUrl);
+            // console.log("Original URL:", originalUrl);
             
             // Test if native URL can handle this
             try {
                 const nativeUrl = new URL(originalUrl);
-                console.log("Native URL worked:", nativeUrl.href);
+                expect(nativeUrl.hostname).to.be.a('string');
+                // console.log("Native URL worked:", nativeUrl.href);
             } catch (error) {
                 console.log(`Native URL failed: ${error}`);
             }
             
             const preprocessed = wURL.preprocessUrl(originalUrl);
-            console.log("Preprocessed:", preprocessed);
+            // console.log("Preprocessed:", preprocessed);
 
             expect(preprocessed.processedUrl).to.equal(originalUrl);
             
             // Test if native URL can handle the preprocessed URL
             try {
                 const nativeUrlPreprocessed = new URL(preprocessed.processedUrl);
-                console.log("Native URL with preprocessed worked:", nativeUrlPreprocessed.href);
+                expect(nativeUrlPreprocessed.hostname).to.be.a('string');
+                // console.log("Native URL with preprocessed worked:", nativeUrlPreprocessed.href);
             } catch (error) {
                 console.log(`Native URL with preprocessed failed: ${error}`);
             }
@@ -185,13 +190,13 @@ describe("wURL Human Tests", () => {
 
         it("should handle absolute path with wURL base", () => {
             const base = new wURL("https://example.com:myalias/oldpath");
-            console.log("Base URL created successfully");
+            // console.log("Base URL created successfully");
             
             const relativeUrl = "/newpath";
-            console.log("Relative URL:", relativeUrl);
+            // console.log("Relative URL:", relativeUrl);
             
             const preprocessed = wURL.preprocessUrl(relativeUrl, base);
-            console.log("Preprocessed:", preprocessed);
+            // console.log("Preprocessed:", preprocessed);
             
             const absolute = new wURL(relativeUrl, base);
             expect(absolute.alias).to.equal("myalias");

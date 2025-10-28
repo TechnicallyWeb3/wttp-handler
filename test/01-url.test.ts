@@ -40,12 +40,12 @@ describe("Basic wttp:// URL Testing", function() {
             it(`should create URL object from: ${successUrl}`, function() {
                 expect(() => {
                     const url = new URL(successUrl);
-                    console.log(`URL ${index + 1} created successfully:`, {
-                        protocol: url.protocol,
-                        hostname: url.hostname,
-                        port: url.port,
-                        pathname: url.pathname
-                    });
+                    // console.log(`URL ${index + 1} created successfully:`, {
+                    //     protocol: url.protocol,
+                    //     hostname: url.hostname,
+                    //     port: url.port,
+                    //     pathname: url.pathname
+                    // });
                 }).to.not.throw();
             });
         });
@@ -57,14 +57,14 @@ describe("Basic wttp:// URL Testing", function() {
                 try {
                     const url = new URL(successUrl);
                     
-                    console.log(`\nURL ${index + 1} properties:`, {
-                        href: url.href,
-                        protocol: url.protocol,
-                        hostname: url.hostname,
-                        port: url.port,
-                        pathname: url.pathname,
-                        host: url.host
-                    });
+                    // console.log(`\nURL ${index + 1} properties:`, {
+                    //     href: url.href,
+                    //     protocol: url.protocol,
+                    //     hostname: url.hostname,
+                    //     port: url.port,
+                    //     pathname: url.pathname,
+                    //     host: url.host
+                    // });
 
                     // Basic expectations
                     expect(url.protocol).to.equal('wttp:');
@@ -91,14 +91,14 @@ describe("Basic wttp:// URL Testing", function() {
             ];
 
             alternatives.forEach((alt, index) => {
-                console.log(`\nTrying alternative ${index + 1}: ${alt}`);
+                // console.log(`\nTrying alternative ${index + 1}: ${alt}`);
                 try {
                     const url = new URL(alt);
-                    console.log(`✅ Alternative ${index + 1} SUCCESS:`, {
-                        protocol: url.protocol,
-                        hostname: url.hostname,
-                        pathname: url.pathname
-                    });
+                    // console.log(`✅ Alternative ${index + 1} SUCCESS:`, {
+                    //     protocol: url.protocol,
+                    //     hostname: url.hostname,
+                    //     pathname: url.pathname
+                    // });
                 } catch (error) {
                     console.log(`❌ Alternative ${index + 1} FAILED:`, (error as Error).message);
                 }
@@ -115,11 +115,11 @@ describe("Basic wttp:// URL Testing", function() {
             
             if (match) {
                 const [, hostname, port, pathname] = match;
-                console.log("Manual parsing result:", {
-                    hostname,
-                    port,
-                    pathname: pathname || '/'
-                });
+                // console.log("Manual parsing result:", {
+                //     hostname,
+                //     port,
+                //     pathname: pathname || '/'
+                // });
                 
                 expect(hostname).to.equal("0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb");
                 expect(port).to.equal("11155111");
@@ -181,10 +181,11 @@ describe("Basic wttp:// URL Testing", function() {
             ];
 
             portTests.forEach(testUrl => {
-                console.log(`\nTesting port in: ${testUrl}`);
+                // console.log(`\nTesting port in: ${testUrl}`);
                 try {
                     const url = new URL(testUrl);
-                    console.log(`✅ Port "${url.port}" works (hostname: ${url.hostname})`);
+                    expect(url.hostname).to.be.a('string');
+                    // console.log(`✅ Port "${url.port}" works (hostname: ${url.hostname})`);
                 } catch (error) {
                     console.log(`❌ Failed: ${(error as Error).message}`);
                 }
@@ -205,16 +206,17 @@ describe("Basic wttp:// URL Testing", function() {
             ];
 
             smallAliasTests.forEach((testUrl, index) => {
-                console.log(`\nTesting small alias ${index + 1}: ${testUrl}`);
+                // console.log(`\nTesting small alias ${index + 1}: ${testUrl}`);
                 try {
                     const url = new URL(testUrl);
-                    console.log(`✅ Small alias "${url.port}" works!`, {
-                        href: url.href,
-                        host: url.host,
-                        hostname: url.hostname,
-                        port: url.port,
-                        pathname: url.pathname
-                    });
+                    expect(url.hostname).to.be.a('string');
+                    // console.log(`✅ Small alias "${url.port}" works!`, {
+                    //     href: url.href,
+                    //     host: url.host,
+                    //     hostname: url.hostname,
+                    //     port: url.port,
+                    //     pathname: url.pathname
+                    // });
                 } catch (error) {
                     console.log(`❌ Failed: ${(error as Error).message}`);
                 }
@@ -232,13 +234,14 @@ describe("Basic wttp:// URL Testing", function() {
                 42161: 42161,   // arbitrum -> 42161 (direct, in range)
             };
 
-            console.log("\nProposed Chain ID to Port Alias Mapping:");
+            // console.log("\nProposed Chain ID to Port Alias Mapping:");
             Object.entries(chainIdToAlias).forEach(([chainId, alias]) => {
-                console.log(`Chain ${chainId} -> Port ${alias}`);
+                // console.log(`Chain ${chainId} -> Port ${alias}`);
                 const testUrl = `wttp://0xabc:${alias}/test`;
                 try {
-                    new URL(testUrl);
-                    console.log(`✅ Alias ${alias} works for chain ${chainId}`);
+                    const url = new URL(testUrl);
+                    expect(url.port).to.equal(alias);
+                    // console.log(`✅ Alias ${alias} works for chain ${chainId}`);
                 } catch (error) {
                     console.log(`❌ Alias ${alias} failed for chain ${chainId}`);
                 }
@@ -260,10 +263,11 @@ describe("Basic wttp:// URL Testing", function() {
             ];
 
             protocols.forEach(testUrl => {
-                console.log(`\nTesting protocol: ${testUrl}`);
+                // console.log(`\nTesting protocol: ${testUrl}`);
                 try {
                     const url = new URL(testUrl);
-                    console.log(`✅ ${url.protocol} protocol works`);
+                    expect(url.protocol).to.be.a('string');
+                    // console.log(`✅ ${url.protocol} protocol works`);
                 } catch (error) {
                     console.log(`❌ Failed: ${(error as Error).message}`);
                 }
@@ -282,14 +286,14 @@ describe("Basic wttp:// URL Testing", function() {
         it("what happens when we pass 2 base urls into the constructor", function() {
             const url = new URL("wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5b:137/index.html");
             const url2 = new URL("wttp://tw3.eth:1/index.html", url);
-            console.log(url2.href);
+            // console.log(url2.href);
             expect(url2.port).to.equal("1");
             expect(url.port).to.equal("137");
         });
         it("what happens when we pass only a relative path", function() {
             const url = new URL("wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5b:137/index.html");
             const url2 = new URL("./relative.html", url);
-            console.log(url2.href);
+            // console.log(url2.href);
             expect(() => new URL("./only-path.html")).to.throw("Invalid URL");
         });
     });

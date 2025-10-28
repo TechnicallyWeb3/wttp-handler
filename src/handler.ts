@@ -77,11 +77,16 @@ export function getChainId(alias: string): number | null {
 export class WTTPHandler {
     private signer: ethers.Signer | undefined;
     private defaultChain: number;
+    private rpc: string;
     private visited: string[] = [];
 
-    constructor(signer?: ethers.Signer, defaultChain?: string) {
+    constructor(signer?: ethers.Signer, defaultChain?: string, rpc?: string) {
         this.signer = signer;
-        this.defaultChain = getChainId(defaultChain || "") || config.defaultChain;
+        const chainId = getChainId(defaultChain || "") || config.defaultChain;
+        this.defaultChain = chainId;
+        // console.log("defaultChain", this.defaultChain, chainId);
+        this.rpc = rpc || config.chains[chainId].rpcsList[0];
+        // console.log("rpc", rpc, this.rpc);
     }
 
     // not actually needed for read only operations
@@ -91,9 +96,9 @@ export class WTTPHandler {
     //     return IBaseWTTPSite__factory.connect(site, signer);
     // }
 
-    public getGateway(chainId?: number, signer?: ethers.Signer, gateway?: string): IWTTPGateway {
+    public getGateway(chainId?: number, signer?: ethers.Signer, gateway?: string, rpc?: string): IWTTPGateway {
         chainId = chainId || this.defaultChain;
-        signer = this.connectProvider(chainId, signer);
+        signer = this.connectProvider(chainId, signer, rpc);
         gateway = gateway || config.chains[chainId].gateway;
         return IWTTPGateway__factory.connect(gateway, signer);
     }
@@ -101,7 +106,7 @@ export class WTTPHandler {
     public connectProvider(chainId?: number, signer?: ethers.Signer, rpc?: string): ethers.Signer {
         chainId = chainId || this.defaultChain;
         signer = signer || this.signer || ethers.Wallet.createRandom();
-        rpc = rpc || config.chains[chainId].rpcsList[0];
+        rpc = rpc || this.rpc;
         return signer.connect(new ethers.JsonRpcProvider(rpc));
     }
 
@@ -174,7 +179,7 @@ export class WTTPHandler {
     public async fetch(url: string | URL | wURL, options?: WTTPFetchOptions): Promise<Response> {
         const wurl = new wURL(url);
         const chainId = getChainId(wurl.alias) || this.defaultChain;
-        const gateway = this.getGateway(chainId, options?.signer, options?.gateway);
+        const gateway = this.getGateway(chainId, options?.signer, options?.gateway, this.rpc);
         const fetchHostname = wurl.hostname.endsWith(".contractaddress0x") ? 
             wurl.hostname.replace(".contractaddress0x", "") : wurl.hostname;
         const siteAddress = await getHostAddress(fetchHostname);
@@ -270,7 +275,7 @@ export class WTTPHandler {
                 response = this.formatResponse(getResponse, Method.GET);
             } catch (error) {
                 if (error instanceof Error) {
-                    if(chainId == 11155111 && error.message.includes("execution reverted")) {
+                    if(error.message.includes("execution reverted")) {
                         const simpleResponse: SimpleResponse = {
                             status: 404,
                             headers: {},
@@ -285,7 +290,13 @@ export class WTTPHandler {
                         };
                         return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
                     } else {
-                        throw new Error("GET error: " + error.message); // error;
+                        const simpleResponse: SimpleResponse = {
+                            status: 404,
+                            headers: {},
+                            body: "",
+                        };
+                        return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
+                        // throw new Error("GET error: " + error.message); // error;
                     }
                 }
             }

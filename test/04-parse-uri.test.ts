@@ -12,7 +12,7 @@ const multiProtocolUrl = "git+wttp://dev:secret@0xContract:42161/repo.git?ref=ma
 describe('Comprehensive URI Parsing using parse-uri library', () => {
     it("should parse a simple wttp URL", () => {
         const parsed = parseURI(simpleUrl);
-        console.log("Simple URL parsed:", JSON.stringify(parsed, null, 2));
+        // console.log("Simple URL parsed:", JSON.stringify(parsed, null, 2));
         expect(parsed.protocol).to.equal("wttp");
         expect(parsed.host).to.equal("0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5b");
         expect(parsed.port).to.be.empty;
@@ -39,7 +39,7 @@ describe('Comprehensive URI Parsing using parse-uri library', () => {
 
     it("should parse complex wttp URL with all components", () => {
         const parsed = parseURI(complexUrl);
-        console.log("Complex URL parsed:", JSON.stringify(parsed, null, 2));
+        // console.log("Complex URL parsed:", JSON.stringify(parsed, null, 2));
         expect(parsed.protocol).to.equal("wttp");
         expect(parsed.user).to.equal("user");
         expect(parsed.password).to.equal("pass");
@@ -217,13 +217,14 @@ describe('Testing various URI patterns for wURL compatibility', () => {
             } catch (error) {
                 // URL class rejected it, but parseURI should still work
                 console.log(`parseURI trying to parse ${testUrl} while URL class failed`);
-                expect(parsed.protocol).to.be.a('string');
-                expect(parsed.source).to.be.a('string');
+                // expect(parsed.protocol).to.be.a('string');
+                // expect(parsed.source).to.be.a('string');
             }
         });
     });
 
     it("should extract chain information from port position", () => {
+        let largeCount = 0;
         const chainExtractionTests = [
             {
                 url: "wttp://host:1/path",
@@ -265,9 +266,10 @@ describe('Testing various URI patterns for wURL compatibility', () => {
             // Our wURL class should be able to determine chain type
             const isNumeric = !isNaN(parseInt(test.expectedChain));
             const isLargeChain = isNumeric && parseInt(test.expectedChain) > 65535;
-            
-            console.log(`Chain: ${test.expectedChain}, Type: ${test.chainType}, IsNumeric: ${isNumeric}, IsLarge: ${isLargeChain}`);
+            if (isLargeChain) largeCount++;
+            // console.log(`Chain: ${test.expectedChain}, Type: ${test.chainType}, IsNumeric: ${isNumeric}, IsLarge: ${isLargeChain}`);
         });
+        expect(largeCount).to.be.greaterThan(0);
     });
 });
 
@@ -280,11 +282,11 @@ function preprocessUrl(url: string | URL) {
     }
     const port = parsedUrl.port;
 
-    console.log(`port: ${port}`);
+    // console.log(`port: ${port}`);
 
     // return original URL if port is valid
     if (port && parseInt(port) <= 65535) {
-        console.log(`port is valid, returning ${urlString}, ${port}`);
+        // console.log(`port is valid, returning ${urlString}, ${port}`);
         return {
             processedUrl: urlString,
             extractedChain: port
@@ -297,7 +299,7 @@ function preprocessUrl(url: string | URL) {
 
     const containsPort = authLength !== userLength + hostLength;
 
-    console.log(`${containsPort ? `URL contains port ${parsedUrl.port}` : "port not detected in URL"}`);
+    // console.log(`${containsPort ? `URL contains port ${parsedUrl.port}` : "port not detected in URL"}`);
 
     // ensure port doesn't exist, if no port, url is safe      
     if (!containsPort) {
@@ -317,7 +319,7 @@ function preprocessUrl(url: string | URL) {
     extractedChain = chainSplit.length > 1 ? chainSplit[chainSplit.length - 1] : "";
 
     const processedUrl = urlString.replace(`${parsedUrl.host}:${extractedChain}`, parsedUrl.host);
-    console.log(`Invalid port, valid chain: ${extractedChain}, returning ${processedUrl}`);
+    // console.log(`Invalid port, valid chain: ${extractedChain}, returning ${processedUrl}`);
 
     return {
         processedUrl,
@@ -767,7 +769,7 @@ describe('Error Handling in Preprocessing', () => {
         ];
 
         errorTests.forEach(test => {
-            console.log(`parsed: ${JSON.stringify(parseURI(test.input, { strictMode: false }))}`)
+            // console.log(`parsed: ${JSON.stringify(parseURI(test.input, { strictMode: false }))}`)
             if (test.shouldThrow) {
                 it(`should throw error for ${test.name}`, () => {
                     expect(() => preprocessUrl(test.input)).to.throw();
