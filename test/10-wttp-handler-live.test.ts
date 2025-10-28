@@ -57,7 +57,7 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
             //     bodyLength: body.length
             // });
             
-            expect(response.status).to.be.a("number");
+            expect(response.status).to.equal(200);
             expect(response.headers.get("Content-Type")).to.exist;
             expect(body).to.be.a("string");
         });

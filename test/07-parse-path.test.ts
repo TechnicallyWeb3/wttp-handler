@@ -59,7 +59,7 @@ describe("Parse-Uri Library Tests", () => {
                     // console.log("");
                 } catch (error) {
                     console.log("  ERROR:", (error as Error).message);
-                    console.log("");
+                    // console.log("");
                 }
             });
         });
@@ -91,7 +91,7 @@ describe("Parse-Uri Library Tests", () => {
                     // console.log("");
                 } catch (error) {
                     console.log("  ERROR:", (error as Error).message);
-                    console.log("");
+                    // console.log("");
                 }
             });
         });
@@ -158,7 +158,7 @@ describe("Parse-Uri Library Tests", () => {
                     // console.log("");
                 } catch (error) {
                     console.log("  ERROR:", (error as Error).message);
-                    console.log("");
+                    // console.log("");
                 }
             });
         });

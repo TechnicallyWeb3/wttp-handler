@@ -23,7 +23,7 @@ describe("Custom Handler Tests", function() {
             tests: [
                 {
                     name: "default test",
-                    url: "wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb/index.html",
+                    url: "wttp://0xfaC1BF2Be485DaF2A66855CE0e5A3F87eB77E5bb:11155111/index.html",
                     expectedStatus: 200,
                 }
             ]
@@ -31,7 +31,7 @@ describe("Custom Handler Tests", function() {
         },
         {
             name: "custom rpc tests",
-            handler: new WTTPHandler(undefined, "polygon", process.env.POLYGON_RPC_URL || undefined),
+            handler: new WTTPHandler(undefined, undefined, process.env.POLYGON_RPC_URL || undefined),
             tests: [
                 {
                     name: "custom handler test",

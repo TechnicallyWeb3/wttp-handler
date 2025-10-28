@@ -40,6 +40,7 @@ export interface WTTPFetchOptions {
     },
     signer?: ethers.Signer;
     gateway?: string;
+    rpc?: string;
     redirect?: "follow" | "error" | "manual";
 }
 
@@ -97,9 +98,10 @@ export class WTTPHandler {
     // }
 
     public getGateway(chainId?: number, signer?: ethers.Signer, gateway?: string, rpc?: string): IWTTPGateway {
-        chainId = chainId || this.defaultChain;
-        signer = this.connectProvider(chainId, signer, rpc);
-        gateway = gateway || config.chains[chainId].gateway;
+        const gatewayChain = chainId || this.defaultChain;
+        rpc = rpc || gatewayChain === this.defaultChain ? this.rpc : config.chains[gatewayChain].rpcsList[0];
+        signer = this.connectProvider(gatewayChain, signer, rpc);
+        gateway = gateway || config.chains[gatewayChain].gateway;
         return IWTTPGateway__factory.connect(gateway, signer);
     }
 
@@ -179,7 +181,7 @@ export class WTTPHandler {
     public async fetch(url: string | URL | wURL, options?: WTTPFetchOptions): Promise<Response> {
         const wurl = new wURL(url);
         const chainId = getChainId(wurl.alias) || this.defaultChain;
-        const gateway = this.getGateway(chainId, options?.signer, options?.gateway, this.rpc);
+        const gateway = this.getGateway(chainId, options?.signer, options?.gateway, options?.rpc);
         const fetchHostname = wurl.hostname.endsWith(".contractaddress0x") ? 
             wurl.hostname.replace(".contractaddress0x", "") : wurl.hostname;
         const siteAddress = await getHostAddress(fetchHostname);
@@ -250,7 +252,7 @@ export class WTTPHandler {
                 response = this.formatResponse(locateResponse, Method.LOCATE);
             } catch (error) {
                 if (error instanceof Error) {
-                    if(chainId == 11155111 && error.message.includes("execution reverted")) {
+                    if(error.message.includes("execution reverted")) {
                         const simpleResponse: SimpleResponse = {
                             status: 404,
                             headers: {},
