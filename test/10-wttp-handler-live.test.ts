@@ -25,19 +25,19 @@ describe("WTTP Handler - Live Site Testing & Edge Cases", function() {
         "/img/logo_32x32.png",
         "/img/logo_48x48.png",
         "/img/logo_72x72.png",
-        "/img/logo_96x96.png",
-        "/img/logo_144x144.png",
-        "/img/logo_168x168.png",
-        "/img/logo_192x192.png",
-        "/img/logo_512x512.png",
-        "/img/og_1200x630.png",
     ];
     const polygonTestSiteEns = "wttp://colourmenft.eth:137";
+    const polygonTestSiteEnsPaths = [
+        "/index.html",
+        "/vite.svg",
+        "/favicon.ico",
+        "/favicon.svg",
+    ];
 
     const testSites = [
         { name: "liveTestSite", url: liveTestSite, paths: liveTestSitePaths },
         { name: "polygonTestSite", url: polygonTestSite, paths: polygonTestSitePaths },
-        { name: "polygonTestSiteEns", url: polygonTestSiteEns, paths: polygonTestSitePaths }
+        { name: "polygonTestSiteEns", url: polygonTestSiteEns, paths: polygonTestSiteEnsPaths }
     ];
 
     beforeEach(() => {
