@@ -79,7 +79,6 @@ export class WTTPHandler {
     private signer: ethers.Signer | undefined;
     private defaultChain: number;
     private rpc: string;
-    private visited: string[] = [];
 
     constructor(signer?: ethers.Signer, defaultChain?: string, rpc?: string) {
         this.signer = signer;
@@ -179,6 +178,15 @@ export class WTTPHandler {
     }
 
     public async fetch(url: string | URL | wURL, options?: WTTPFetchOptions): Promise<Response> {
+        // Start with an empty visited array for each new request
+        return this._fetch(url, options, []);
+    }
+
+    private async _fetch(
+        url: string | URL | wURL, 
+        options?: WTTPFetchOptions,
+        visited: string[] = []
+    ): Promise<Response> {
         const wurl = new wURL(url);
         const chainId = getChainId(wurl.alias) || this.defaultChain;
         const gateway = this.getGateway(chainId, options?.signer, options?.gateway, options?.rpc);
@@ -312,30 +320,30 @@ export class WTTPHandler {
             this.isRedirect(response.status) &&
             options.redirect === "follow"
         ) {
-            this.visited.push(wurl.toString());
+            visited.push(wurl.toString());
             const absolutePath = this.getAbsolutePath(response.headers.Location, wurl);
-            if (this.visited.includes(absolutePath)) {
+            if (visited.includes(absolutePath)) {
                 const simpleResponse: SimpleResponse = {
                     status: 508,
                     headers: {},
-                    body: "LOOP_DETECTED: " + this.visited.join(", "),
+                    body: "LOOP_DETECTED: " + visited.join(", "),
                 };
                 return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
             }
-            if (this.visited.length > MAX_REDIRECTS) {
+            if (visited.length > MAX_REDIRECTS) {
                 const simpleResponse: SimpleResponse = {
                     status: 310,
                     headers: {},
-                    body: "TOO_MANY_REDIRECTS: " + this.visited.join(", "),
+                    body: "TOO_MANY_REDIRECTS: " + visited.join(", "),
                 };
                 return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
             }
-            return await this.fetch(new wURL(response.headers.Location, wurl), {
+            return await this._fetch(new wURL(response.headers.Location, wurl), {
                 method: options.method,
                 headers: options?.headers,
                 signer: options?.signer,
                 gateway: gateway.target.toString(),
-            });
+            }, visited);
         }
 
         if (this.isRedirect(response.status) && options.redirect === "error") {
