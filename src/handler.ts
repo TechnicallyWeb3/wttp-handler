@@ -337,8 +337,7 @@ export class WTTPHandler {
                 // Convert Arweave URI to gateway URL and fetch
                 return await this.fetchArweave(location, options);
             }
-            
-            const absolutePath = this.getAbsolutePath(location, wurl);
+            const absolutePath = this.getAbsolutePath(response.headers.Location, wurl);
             if (visited.includes(absolutePath)) {
                 const simpleResponse: SimpleResponse = {
                     status: 508,
@@ -355,11 +354,13 @@ export class WTTPHandler {
                 };
                 return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
             }
-            return await this._fetch(new wURL(location, wurl), {
+            return await this._fetch(new wURL(response.headers.Location, wurl), {
                 method: options.method,
                 headers: options?.headers,
                 signer: options?.signer,
                 gateway: gateway.target.toString(),
+                rpc: options?.rpc,
+                arweaveGateway: options?.arweaveGateway,
             }, visited);
         }
 
