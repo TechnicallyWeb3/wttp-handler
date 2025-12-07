@@ -42,6 +42,7 @@ export interface WTTPFetchOptions {
     gateway?: string;
     rpc?: string;
     redirect?: "follow" | "error" | "manual";
+    arweaveGateway?: string;
 }
 
 export type WTTPResponse = 
@@ -79,14 +80,16 @@ export class WTTPHandler {
     private signer: ethers.Signer | undefined;
     private defaultChain: number;
     private rpc: string;
+    private defaultArweaveGateway: string;
 
-    constructor(signer?: ethers.Signer, defaultChain?: string, rpc?: string) {
+    constructor(signer?: ethers.Signer, defaultChain?: string, rpc?: string, arweaveGateway?: string) {
         this.signer = signer;
         const chainId = getChainId(defaultChain || "") || config.defaultChain;
         this.defaultChain = chainId;
         // console.log("defaultChain", this.defaultChain, chainId);
         this.rpc = rpc || config.chains[chainId].rpcsList[0];
         // console.log("rpc", rpc, this.rpc);
+        this.defaultArweaveGateway = arweaveGateway || "https://arweave.net/";
     }
 
     // not actually needed for read only operations
@@ -187,6 +190,12 @@ export class WTTPHandler {
         options?: WTTPFetchOptions,
         visited: string[] = []
     ): Promise<Response> {
+        // Handle Arweave URIs (ar://[TXID])
+        const urlString = url instanceof wURL ? url.toString() : (url instanceof URL ? url.toString() : url);
+        if (urlString.startsWith("ar://")) {
+            return this.fetchArweave(urlString, options);
+        }
+
         const wurl = new wURL(url);
         const chainId = getChainId(wurl.alias) || this.defaultChain;
         const gateway = this.getGateway(chainId, options?.signer, options?.gateway, options?.rpc);
@@ -321,7 +330,15 @@ export class WTTPHandler {
             options.redirect === "follow"
         ) {
             visited.push(wurl.toString());
-            const absolutePath = this.getAbsolutePath(response.headers.Location, wurl);
+            const location = response.headers.Location;
+            
+            // Check if Location header contains an Arweave URI
+            if (location && location.startsWith("ar://")) {
+                // Convert Arweave URI to gateway URL and fetch
+                return await this.fetchArweave(location, options);
+            }
+            
+            const absolutePath = this.getAbsolutePath(location, wurl);
             if (visited.includes(absolutePath)) {
                 const simpleResponse: SimpleResponse = {
                     status: 508,
@@ -338,7 +355,7 @@ export class WTTPHandler {
                 };
                 return this.createResponse(simpleResponse.body, simpleResponse.status, simpleResponse.headers);
             }
-            return await this._fetch(new wURL(response.headers.Location, wurl), {
+            return await this._fetch(new wURL(location, wurl), {
                 method: options.method,
                 headers: options?.headers,
                 signer: options?.signer,
@@ -374,6 +391,30 @@ export class WTTPHandler {
 
     public getAbsolutePath(url: string, base: string | URL | wURL): string {
         return new wURL(url, base).toString();
+    }
+
+    private async fetchArweave(
+        arUri: string,
+        options?: WTTPFetchOptions
+    ): Promise<Response> {
+        // Extract transaction ID from ar://[TXID]
+        const txIdMatch = arUri.match(/^ar:\/\/([^\/\s]+)/);
+        if (!txIdMatch || !txIdMatch[1]) {
+            throw new Error(`Invalid Arweave URI format: ${arUri}`);
+        }
+
+        const txId = txIdMatch[1];
+        const arweaveGateway = options?.arweaveGateway || this.defaultArweaveGateway;
+        
+        // Ensure gateway ends with a slash for proper URL construction
+        const gatewayBase = arweaveGateway.endsWith("/") ? arweaveGateway : `${arweaveGateway}/`;
+        const arweaveUrl = `${gatewayBase}${txId}`;
+
+        // Fetch from Arweave gateway
+        const response = await fetch(arweaveUrl);
+        
+        // Return the response as-is (it's already a Response object)
+        return response;
     }
 
 }
