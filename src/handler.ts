@@ -43,6 +43,7 @@ export interface WTTPFetchOptions {
     rpc?: string;
     redirect?: "follow" | "error" | "manual";
     arweaveGateway?: string;
+    ipfsGateway?: string;
 }
 
 export type WTTPResponse = 
@@ -81,8 +82,15 @@ export class WTTPHandler {
     private defaultChain: number;
     private rpc: string;
     private defaultArweaveGateway: string;
+    private defaultIpfsGateway: string;
 
-    constructor(signer?: ethers.Signer, defaultChain?: string, rpc?: string, arweaveGateway?: string) {
+    constructor(
+        signer?: ethers.Signer,
+        defaultChain?: string,
+        rpc?: string,
+        arweaveGateway?: string,
+        ipfsGateway?: string
+    ) {
         this.signer = signer;
         const chainId = getChainId(defaultChain || "") || config.defaultChain;
         this.defaultChain = chainId;
@@ -90,6 +98,7 @@ export class WTTPHandler {
         this.rpc = rpc || config.chains[chainId].rpcsList[0];
         // console.log("rpc", rpc, this.rpc);
         this.defaultArweaveGateway = arweaveGateway || "https://arweave.net/";
+        this.defaultIpfsGateway = ipfsGateway || "https://ipfs.io/ipfs/";
     }
 
     // not actually needed for read only operations
@@ -194,6 +203,9 @@ export class WTTPHandler {
         const urlString = url instanceof wURL ? url.toString() : (url instanceof URL ? url.toString() : url);
         if (urlString.startsWith("ar://")) {
             return this.fetchArweave(urlString, options);
+        }
+        if (urlString.startsWith("ipfs://")) {
+            return this.fetchIpfs(urlString, options);
         }
 
         const wurl = new wURL(url);
@@ -337,6 +349,9 @@ export class WTTPHandler {
                 // Convert Arweave URI to gateway URL and fetch
                 return await this.fetchArweave(location, options);
             }
+            if (location && location.startsWith("ipfs://")) {
+                return await this.fetchIpfs(location, options);
+            }
             const absolutePath = this.getAbsolutePath(response.headers.Location, wurl);
             if (visited.includes(absolutePath)) {
                 const simpleResponse: SimpleResponse = {
@@ -361,6 +376,7 @@ export class WTTPHandler {
                 gateway: gateway.target.toString(),
                 rpc: options?.rpc,
                 arweaveGateway: options?.arweaveGateway,
+                ipfsGateway: options?.ipfsGateway,
             }, visited);
         }
 
@@ -416,6 +432,34 @@ export class WTTPHandler {
         
         // Return the response as-is (it's already a Response object)
         return response;
+    }
+
+    private async fetchIpfs(
+        ipfsUri: string,
+        options?: WTTPFetchOptions
+    ): Promise<Response> {
+        const ipfsMatch = ipfsUri.match(/^ipfs:\/\/([^/?#\s]+)(\/?[^?#]*)?$/);
+        if (!ipfsMatch || !ipfsMatch[1]) {
+            throw new Error(`Invalid IPFS URI format: ${ipfsUri}`);
+        }
+
+        const cid = ipfsMatch[1];
+        const rawPath = ipfsMatch[2] || "";
+        const pathSuffix =
+            !rawPath || rawPath === "/"
+                ? ""
+                : "/" +
+                  rawPath
+                      .split("/")
+                      .filter(Boolean)
+                      .map((seg) => encodeURIComponent(seg))
+                      .join("/");
+
+        const ipfsGateway = options?.ipfsGateway || this.defaultIpfsGateway;
+        const gatewayBase = ipfsGateway.endsWith("/") ? ipfsGateway : `${ipfsGateway}/`;
+        const ipfsHttpUrl = `${gatewayBase}${cid}${pathSuffix}`;
+
+        return fetch(ipfsHttpUrl);
     }
 
 }

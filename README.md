@@ -9,6 +9,7 @@ A TypeScript/JavaScript client library for the WTTP (Web Three Transfer Protocol
 - 📍 **wURL Class** - Extended URL class supporting blockchain chain IDs and aliases in the port position
 - ⚡ **Fetch-like API** - Familiar interface similar to the native `fetch()` function
 - 🔄 **Redirect Handling** - Automatic redirect following with customizable behavior
+- 📦 **Arweave and IPFS** - Resolve `ar://` and `ipfs://` URIs (including WTTP redirects) via configurable HTTP gateways
 - 📊 **Rich Response Data** - Access to blockchain-specific metadata and headers
 - 🛡️ **TypeScript Support** - Full type definitions for better development experience
 
@@ -43,11 +44,20 @@ The main client for interacting with WTTP sites.
 #### Constructor
 
 ```typescript
-const wttp = new WTTPHandler(signer?, defaultChain?);
+const wttp = new WTTPHandler(
+  signer?,
+  defaultChain?,
+  rpc?,
+  arweaveGateway?,
+  ipfsGateway?
+);
 ```
 
 - **signer** (optional): Ethers.js signer for blockchain interactions
 - **defaultChain** (optional): Default chain ID or alias (e.g., "sepolia", "mainnet", "11155111")
+- **rpc** (optional): JSON-RPC URL for the default chain (overrides `@wttp/core` defaults)
+- **arweaveGateway** (optional): Base URL for `ar://` resolution (default `https://arweave.net/`)
+- **ipfsGateway** (optional): Base URL prefix for `ipfs://` resolution (default `https://ipfs.io/ipfs/`)
 
 #### Methods
 
@@ -66,7 +76,10 @@ const response = await wttp.fetch(url, {
   },
   signer: customSigner,         // Override default signer
   gateway: gatewayAddress,      // Override default gateway
-  redirect: "follow"            // "follow" | "error" | "manual"
+  rpc: rpcUrl,                  // Override RPC for this request
+  redirect: "follow",           // "follow" | "error" | "manual"
+  arweaveGateway: "https://arweave.net/",  // Optional: `ar://` HTTP gateway
+  ipfsGateway: "https://ipfs.io/ipfs/"     // Optional: `ipfs://` gateway prefix
 });
 ```
 
@@ -210,6 +223,15 @@ const response = await wttp.fetch(url, { redirect: "manual" });
 
 // Throw error on redirect
 const response = await wttp.fetch(url, { redirect: "error" });
+```
+
+### Arweave and IPFS URIs
+
+You can pass `ar://` or `ipfs://` URLs directly to `fetch()`, or follow WTTP redirects whose `Location` uses those schemes. Content is loaded over HTTP from the configured gateways (defaults: Arweave `https://arweave.net/`, IPFS path style `https://ipfs.io/ipfs/`). For `ipfs://<cid>/path/to/file`, path segments are URL-encoded when building the gateway request.
+
+```typescript
+await wttp.fetch("ar://<transactionId>");
+await wttp.fetch("ipfs://<cid>/readme.txt");
 ```
 
 ### Custom Signer and Gateway
