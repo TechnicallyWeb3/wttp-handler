@@ -9,7 +9,7 @@ A TypeScript/JavaScript client library for the WTTP (Web Three Transfer Protocol
 - 📍 **wURL Class** - Extended URL class supporting blockchain chain IDs and aliases in the port position
 - ⚡ **Fetch-like API** - Familiar interface similar to the native `fetch()` function
 - 🔄 **Redirect Handling** - Automatic redirect following with customizable behavior
-- 📦 **Arweave and IPFS** - Resolve `ar://` and `ipfs://` URIs (including WTTP redirects) via configurable HTTP gateways
+- 📦 **Arweave, IPFS, and Ordinals** - Resolve `ar://`, `ipfs://`, and `ord://` URIs (including WTTP redirects) via configurable HTTP gateways
 - 📊 **Rich Response Data** - Access to blockchain-specific metadata and headers
 - 🛡️ **TypeScript Support** - Full type definitions for better development experience
 
@@ -49,7 +49,8 @@ const wttp = new WTTPHandler(
   defaultChain?,
   rpc?,
   arweaveGateway?,
-  ipfsGateway?
+  ipfsGateway?,
+  ordinalsGateway?
 );
 ```
 
@@ -58,6 +59,7 @@ const wttp = new WTTPHandler(
 - **rpc** (optional): JSON-RPC URL for the default chain (overrides `@wttp/core` defaults)
 - **arweaveGateway** (optional): Base URL for `ar://` resolution (default `https://arweave.net/`)
 - **ipfsGateway** (optional): Base URL prefix for `ipfs://` resolution (default `https://ipfs.io/ipfs/`)
+- **ordinalsGateway** (optional): Base URL for `ord://` resolution (default `https://ordinals.com/content/`)
 
 #### Methods
 
@@ -78,8 +80,9 @@ const response = await wttp.fetch(url, {
   gateway: gatewayAddress,      // Override default gateway
   rpc: rpcUrl,                  // Override RPC for this request
   redirect: "follow",           // "follow" | "error" | "manual"
-  arweaveGateway: "https://arweave.net/",  // Optional: `ar://` HTTP gateway
-  ipfsGateway: "https://ipfs.io/ipfs/"     // Optional: `ipfs://` gateway prefix
+  arweaveGateway: "https://arweave.net/",      // Optional: `ar://` HTTP gateway
+  ipfsGateway: "https://ipfs.io/ipfs/",        // Optional: `ipfs://` gateway prefix
+  ordinalsGateway: "https://ordinals.com/content/"  // Optional: `ord://` gateway
 });
 ```
 
@@ -225,13 +228,18 @@ const response = await wttp.fetch(url, { redirect: "manual" });
 const response = await wttp.fetch(url, { redirect: "error" });
 ```
 
-### Arweave and IPFS URIs
+### Arweave, IPFS, and Ordinals URIs
 
-You can pass `ar://` or `ipfs://` URLs directly to `fetch()`, or follow WTTP redirects whose `Location` uses those schemes. Content is loaded over HTTP from the configured gateways (defaults: Arweave `https://arweave.net/`, IPFS path style `https://ipfs.io/ipfs/`). For `ipfs://<cid>/path/to/file`, path segments are URL-encoded when building the gateway request.
+You can pass `ar://`, `ipfs://`, or `ord://` URLs directly to `fetch()`, or follow WTTP redirects whose `Location` uses those schemes. Content is loaded over HTTP from the configured gateways.
+
+- **Arweave** (default `https://arweave.net/`): `ar://<txid>` maps to `https://arweave.net/<txid>`.
+- **IPFS** (default `https://ipfs.io/ipfs/`): `ipfs://<cid>/path/to/file` — path segments are URL-encoded.
+- **Ordinals** (default `https://ordinals.com/content/`): `ord://<txid>:<index>[/path]` — the inscription ID is reconstructed as `<txid>i<index>` (the canonical Ordinals format), and any path suffix is URL-encoded per segment.
 
 ```typescript
 await wttp.fetch("ar://<transactionId>");
 await wttp.fetch("ipfs://<cid>/readme.txt");
+await wttp.fetch("ord://<txid>:0");
 ```
 
 ### Custom Signer and Gateway

@@ -44,6 +44,7 @@ export interface WTTPFetchOptions {
     redirect?: "follow" | "error" | "manual";
     arweaveGateway?: string;
     ipfsGateway?: string;
+    ordinalsGateway?: string;
 }
 
 export type WTTPResponse = 
@@ -83,13 +84,15 @@ export class WTTPHandler {
     private rpc: string;
     private defaultArweaveGateway: string;
     private defaultIpfsGateway: string;
+    private defaultOrdinalsGateway: string;
 
     constructor(
         signer?: ethers.Signer,
         defaultChain?: string,
         rpc?: string,
         arweaveGateway?: string,
-        ipfsGateway?: string
+        ipfsGateway?: string,
+        ordinalsGateway?: string
     ) {
         this.signer = signer;
         const chainId = getChainId(defaultChain || "") || config.defaultChain;
@@ -99,6 +102,7 @@ export class WTTPHandler {
         // console.log("rpc", rpc, this.rpc);
         this.defaultArweaveGateway = arweaveGateway || "https://arweave.net/";
         this.defaultIpfsGateway = ipfsGateway || "https://ipfs.io/ipfs/";
+        this.defaultOrdinalsGateway = ordinalsGateway || "https://ordinals.com/content/";
     }
 
     // not actually needed for read only operations
@@ -206,6 +210,9 @@ export class WTTPHandler {
         }
         if (urlString.startsWith("ipfs://")) {
             return this.fetchIpfs(urlString, options);
+        }
+        if (urlString.startsWith("ord://")) {
+            return this.fetchOrdinals(urlString, options);
         }
 
         const wurl = new wURL(url);
@@ -352,6 +359,9 @@ export class WTTPHandler {
             if (location && location.startsWith("ipfs://")) {
                 return await this.fetchIpfs(location, options);
             }
+            if (location && location.startsWith("ord://")) {
+                return await this.fetchOrdinals(location, options);
+            }
             const absolutePath = this.getAbsolutePath(response.headers.Location, wurl);
             if (visited.includes(absolutePath)) {
                 const simpleResponse: SimpleResponse = {
@@ -377,6 +387,7 @@ export class WTTPHandler {
                 rpc: options?.rpc,
                 arweaveGateway: options?.arweaveGateway,
                 ipfsGateway: options?.ipfsGateway,
+                ordinalsGateway: options?.ordinalsGateway,
             }, visited);
         }
 
@@ -460,6 +471,32 @@ export class WTTPHandler {
         const ipfsHttpUrl = `${gatewayBase}${cid}${pathSuffix}`;
 
         return fetch(ipfsHttpUrl);
+    }
+
+    private async fetchOrdinals(
+        ordUri: string,
+        options?: WTTPFetchOptions
+    ): Promise<Response> {
+        const ordMatch = ordUri.match(/^ord:\/\/([0-9a-fA-F]+):(\d+)(\/[^?#]*)?$/);
+        if (!ordMatch || !ordMatch[1] || !ordMatch[2]) {
+            throw new Error(`Invalid Ordinals URI format: ${ordUri}`);
+        }
+
+        const inscriptionId = `${ordMatch[1]}i${ordMatch[2]}`;
+        const rawPath = ordMatch[3] || "";
+        const pathSuffix =
+            !rawPath || rawPath === "/"
+                ? ""
+                : "/" +
+                  rawPath
+                      .split("/")
+                      .filter(Boolean)
+                      .map((seg) => encodeURIComponent(seg))
+                      .join("/");
+
+        const ordinalsGateway = options?.ordinalsGateway || this.defaultOrdinalsGateway;
+        const gatewayBase = ordinalsGateway.endsWith("/") ? ordinalsGateway : `${ordinalsGateway}/`;
+        return fetch(`${gatewayBase}${inscriptionId}${pathSuffix}`);
     }
 
 }
