@@ -63,6 +63,7 @@ export function getChainId(alias: string): number | null {
         "localhost": 31337,
         "sepolia": 11155111,
         "testnet": 11155111,
+        "nodechain": 99999,
         "ethereum": 1,
         "mainnet": 1,
         "eth": 1,
