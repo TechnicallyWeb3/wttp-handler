@@ -24,3 +24,4 @@
 // Export everything from the main modules
 export * from "./methods";
 export * from "./handler";
+export * from "./nodechain-handler";
